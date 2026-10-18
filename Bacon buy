@@ -1,0 +1,3185 @@
+--!nocheck
+--!native
+
+--[[
+  Void
+  Renamed build (from UE cracked package)
+  Display name only — underlying VM payload unchanged
+]]
+
+
+--[[                              ...,...,..................                               
+                      ,,,,........,.,...,...........,.,...............,                   
+                 *,,,,,,.,,,,,,,,,,,,,,,,,,,.......,,.,.................,,.               
+                *,,,,,.,,........,,,,,,,,,,,,,,,,,,,,,,,,...............,,,               
+                ,,,,,,,,,,,,,,,,,....,,,,,,,,,,,,,,,,,.....,,,,,,........,,,              
+                ,,,,,,,*&@@@@@%,,/(**...,,,,,,,,,,,...,**,,,/%&@&%*....,,.,,              
+                ,,,,&@(/(((((&@@@@@@@,%*,,,*,*,,,,,**,@@@@@@@@(//////&%...,,              
+               ,,,,/,,,,,,,,,,,*(/#@@@@@(%,****,**@@@@@@#(/*,,,,,,,...,/..,,              
+               *,,,,,,,,,,,,*******///(@#/******(@@@///*****,,,,,,,,,,,,.,,,              
+               *,,,,****************//////*,,,,,****/*************,,,,,,,,,,              
+               ,,,*******///    .//////***,,....,**//**/**    .****,**,,,,,,              
+               .,,,***//              ***,,.....,,,*/             ,****,,,,,              
+               ,,,,,,,,**//********,,,,,,,.......,,,,,*************,...,,,,,(             
+               *,,,,,,,,,,,,,,,,...,,,,,,,.........,,,,......,,,,,,,,,..,.,,&             
+               #,,******,,,,,,,,,,,,,,,,,,.......,.,.....,,,,,,,,,,,,,,,,,,,#             
+                **/////*****,,,,,,,,,,,,,,..........,,,,,,,,,,,,,,,*******,,              
+                ***////////********,,,,,,,.........,,.,*************///***,,              
+                ****/////////////**,,,,,*,,,,,,,,,,,,,.,,/////**********,*,,              
+                ***//////////*,,,,***//****/*//*********,,,,,*((/////*/*,,,               
+                *****//@@**,,,,,,,,**/(/########%&///*,,,,,,,,,/*@@/***,,,,               
+                 *******@@@**,,,,,,**(/@@@@@@@@@@@@/(**,,***/#/@@@***,,,,,                
+                 *********@@@@@@&%@@@@@@@@@(((%@@@@@@@@@&%@@@@@@*,**,,,,,,                
+                 .***********//##%&@@@@@@(#////(#@@@@@@&%#///******,,*,,,                 
+                  **************,,,,***/**************,,,,******,,***,,,                  
+                   ,**********/////////**//////////////*************,,,                   
+                     ************///////((@@@@@@%(/******************                     
+                       **********//**////(@@@@@@/*****************,                       
+                         ****************(@@@@@@/**,************                          
+                            *************(&@@@@@/*************                            
+                              ,**********/%@@@@&/**********                               
+                                  */*//////@@@&%////****                                  
+                                     //////&@@&/////*   
+
+
+-----------------------------------------------------------------
+
+                    Void  |  discord.gg/rqwt4PeWJU      
+
+-----------------------------------------------------------------
+
+]]
+
+local arguments = table.pack(...)
+local sharedEnv = getgenv and getgenv() or _G
+-- FIXED by Onyx: force-clean previous instance so UI always rebuilds
+do
+    local env = sharedEnv
+    env['Void'] = nil
+    env.CERUS_UNNAMED_LOADED = nil
+    -- also clear old UE / SHADOW names just in case
+    env['☾ SHADOW MALL ☽'] = nil
+    env.UE_LOADED = nil
+    env.Library = nil
+    env.Options = nil
+    env.Toggles = nil
+end
+
+local control = {
+    status = 'starting',
+    started = os.clock(),
+    error = nil,
+    stopped = false,
+}
+
+sharedEnv['Void'] = control
+
+local previousLoaded = rawget(sharedEnv, 'CERUS_UNNAMED_LOADED')
+local previousLibrary = rawget(sharedEnv, 'Library')
+local previousOptions = rawget(sharedEnv, 'Options')
+local previousToggles = rawget(sharedEnv, 'Toggles')
+local budgets = setmetatable({}, {
+    __mode = 'k',
+})
+local schedulerFrame = 0
+local heartbeatConnection
+
+local function __step(id)
+    if control.stopped then
+        error('execution stopped', 0)
+    end
+
+    local thread = coroutine.running()
+    local state = budgets[thread]
+
+    if not state then
+        local now = os.clock()
+
+        state = {
+            ticks = 0,
+            frame = schedulerFrame,
+            started = now,
+        }
+        budgets[thread] = state
+    end
+
+    state.ticks += 1
+
+    if state.ticks % 4096 ~= 0 then
+        return
+    end
+
+    local now = os.clock()
+
+    if state.frame ~= schedulerFrame then
+        state.started = now
+        state.ticks = 0
+        state.frame = schedulerFrame
+    end
+    if state.ticks > 50000000 or now - state.started > 20 then
+        control.error = 'Execution made no progress: loop ' .. tostring(id)
+        control.status = 'error'
+        control.stopped = true
+
+        if heartbeatConnection then
+            heartbeatConnection:Disconnect()
+        end
+
+        error(control.error, 0)
+    end
+    if state.ticks > 0 and state.ticks % 262144 == 0 and coroutine.isyieldable() then
+        task.wait()
+
+        state.frame = schedulerFrame
+    end
+end
+
+local Native = {}
+local Backend = {}
+
+local function buildApplication()
+    local runtime = Backend.createRuntime()
+    local state = Backend.bindPrimitives(runtime)
+    local data = Backend.loadProgramData()
+
+    Backend.initialize(data)
+
+    return state[56](data[1], state[2])
+end
+local function runApplication()
+    local function traceback(err)
+        local text = tostring(err)
+
+        return debug and debug.traceback and debug.traceback(text, 2) or text
+    end
+
+    local ok, result = xpcall(function()
+        assert(type(getgenv) == 'function', 'This file needs a Roblox executor with getgenv.')
+        assert(game ~= nil and type(loadstring) == 'function', 'Roblox and loadstring are required.')
+        assert(type(buffer) == 'table' and type(bit32) == 'table', 'buffer and bit32 are required.')
+
+
+        
+        -- (center Void glow removed)
+
+
+
+
+
+        heartbeatConnection = game:GetService('RunService').Heartbeat:Connect(function()
+            schedulerFrame += 1
+        end)
+
+        local entry = buildApplication()
+
+        return table.pack(entry(table.unpack(arguments, 1, arguments.n)))
+    end, traceback)
+
+    if not ok then
+        control.error = result
+        control.status = 'error'
+        control.stopped = true
+
+        if heartbeatConnection then
+            heartbeatConnection:Disconnect()
+        end
+
+        local failedLibrary = rawget(sharedEnv, 'Library')
+
+        if type(failedLibrary) == 'table' and failedLibrary ~= previousLibrary then
+            if type(failedLibrary.Signals) == 'table' then
+                for _, signal in failedLibrary.Signals do
+                    if typeof(signal) == 'RBXScriptConnection' then
+                        signal:Disconnect()
+                    end
+                end
+            end
+            if typeof(failedLibrary.ScreenGui) == 'Instance' then
+                failedLibrary.ScreenGui:Destroy()
+            end
+        end
+
+        sharedEnv.Library = previousLibrary
+        sharedEnv.Options = previousOptions
+        sharedEnv.Toggles = previousToggles
+        sharedEnv.CERUS_UNNAMED_LOADED = previousLoaded
+
+        return control
+    end
+
+    control.status = 'entry_returned'
+    control.elapsed = os.clock() - control.started
+
+    -- FORCE UI VISIBLE
+    task.defer(function()
+        local lib = rawget(sharedEnv, 'Library')
+        if type(lib) == 'table' then
+            if typeof(lib.ScreenGui) == 'Instance' then
+                lib.ScreenGui.Enabled = true
+                lib.ScreenGui.Parent = game:GetService('CoreGui')
+                pcall(function() lib.ScreenGui.Visible = true end)
+            end
+            -- try common toggle / show methods
+            pcall(function() if lib.Toggle then lib:Toggle(true) end end)
+            pcall(function() if lib.SetVisible then lib:SetVisible(true) end end)
+            pcall(function() if lib.Show then lib:Show() end end)
+            pcall(function() if lib.Open then lib:Open() end end)
+            -- last resort: walk CoreGui for any ScreenGui that looks like the menu
+            for _, g in ipairs(game:GetService('CoreGui'):GetChildren()) do
+                if g:IsA('ScreenGui') and (g.Name:lower():find('cerus') or g.Name:lower():find('unnamed') or g.Name:lower():find('shadow') or g.Name:lower():find('ue')) then
+                    g.Enabled = true
+                    pcall(function() g.Visible = true end)
+                end
+            end
+        end
+    end)
+
+    
+    -- FORCE TITLE: keep re-applying rainbow Void + discord on Rivals slot
+    task.spawn(function()
+        local okTitle, errTitle = pcall(function()
+            local TweenService = game:GetService('TweenService')
+            -- retry for a while because UI builds late / themes overwrite text
+            local titleLabel, rivalsLabel
+            local stroke, rStroke
+            local hue = 0
+
+            local function findLabels(gui)
+                local tLab, rLab
+                for _, d in ipairs(gui:GetDescendants()) do
+                    if d:IsA('TextLabel') then
+                        local t = tostring(d.Text or '')
+                        local relY = d.AbsolutePosition.Y - gui.AbsolutePosition.Y
+                        local sizeY = d.AbsoluteSize.Y
+                        if relY >= -5 and relY < 50 and sizeY >= 8 and sizeY <= 40 then
+                            if t == 'Void' or t:find('Cerus') or t:find('Unnamed') or t:find('SHADOW') or t == 'Title' then
+                                tLab = d
+                            end
+                            if t == 'Rivals' or t:find('Rivals') or t:find('discord.gg') then
+                                rLab = d
+                            end
+                        end
+                    end
+                end
+                -- broader fallback for Rivals anywhere near top of this ScreenGui
+                if not rLab then
+                    for _, d in ipairs(gui:GetDescendants()) do
+                        if d:IsA('TextLabel') then
+                            local t = tostring(d.Text or '')
+                            if t == 'Rivals' or t:find('^Rivals') then
+                                rLab = d
+                                break
+                            end
+                        end
+                    end
+                end
+                if not tLab then
+                    for _, d in ipairs(gui:GetDescendants()) do
+                        if d:IsA('TextLabel') then
+                            local t = tostring(d.Text or '')
+                            if t == 'Void' then
+                                tLab = d
+                                break
+                            end
+                        end
+                    end
+                end
+                return tLab, rLab
+            end
+
+            for attempt = 1, 40 do
+                local lib = rawget(sharedEnv, 'Library')
+                if type(lib) == 'table' and typeof(lib.ScreenGui) == 'Instance' then
+                    local gui = lib.ScreenGui
+                    local tLab, rLab = findLabels(gui)
+                    if tLab then titleLabel = tLab end
+                    if rLab then rivalsLabel = rLab end
+                    if titleLabel and rivalsLabel then break end
+                end
+                task.wait(0.25)
+            end
+
+            if titleLabel then
+                titleLabel.Text = 'Void'
+                titleLabel.Visible = true
+                titleLabel.TextTransparency = 0
+                titleLabel.RichText = false
+                stroke = titleLabel:FindFirstChildOfClass('UIStroke')
+                if not stroke then
+                    stroke = Instance.new('UIStroke')
+                    stroke.Parent = titleLabel
+                end
+            end
+
+            if rivalsLabel then
+                rivalsLabel.Text = 'https://discord.gg/rqwt4PeWJU'
+                rivalsLabel.Visible = true
+                rivalsLabel.TextTransparency = 0
+                rivalsLabel.RichText = false
+                rStroke = rivalsLabel:FindFirstChildOfClass('UIStroke')
+                if not rStroke then
+                    rStroke = Instance.new('UIStroke')
+                    rStroke.Parent = rivalsLabel
+                end
+            end
+
+            -- continuous rainbow + re-assert text (themes may overwrite)
+            task.spawn(function()
+                while true do
+                    hue = (hue + 0.015) % 1
+                    local col = Color3.fromHSV(hue, 0.95, 1)
+                    local col2 = Color3.fromHSV((hue + 0.12) % 1, 0.9, 1)
+
+                    local lib = rawget(sharedEnv, 'Library')
+                    if type(lib) == 'table' and typeof(lib.ScreenGui) == 'Instance' then
+                        -- re-find if lost
+                        if not (titleLabel and titleLabel.Parent) or not (rivalsLabel and rivalsLabel.Parent) then
+                            local tLab, rLab = findLabels(lib.ScreenGui)
+                            if tLab then titleLabel = tLab end
+                            if rLab then rivalsLabel = rLab end
+                        end
+                    end
+
+                    if titleLabel and titleLabel.Parent then
+                        if titleLabel.Text ~= 'Void' then titleLabel.Text = 'Void' end
+                        titleLabel.TextColor3 = col
+                        titleLabel.TextTransparency = 0
+                        titleLabel.Visible = true
+                        local s = titleLabel:FindFirstChildOfClass('UIStroke')
+                        if s then
+                            s.Color = col2
+                            s.Transparency = 0.1
+                            s.Thickness = 1.7 + 0.9 * math.abs(math.sin(hue * 12))
+                        end
+                    end
+
+                    if rivalsLabel and rivalsLabel.Parent then
+                        if rivalsLabel.Text ~= 'https://discord.gg/rqwt4PeWJU' then
+                            rivalsLabel.Text = 'https://discord.gg/rqwt4PeWJU'
+                        end
+                        rivalsLabel.TextColor3 = col2
+                        rivalsLabel.Visible = true
+                        rivalsLabel.TextTransparency = 0
+                        local s2 = rivalsLabel:FindFirstChildOfClass('UIStroke')
+                        if s2 then
+                            s2.Color = col
+                            s2.Transparency = 0.2
+                            s2.Thickness = 1.2
+                        end
+                    end
+
+                    task.wait(0.03)
+                end
+            end)
+
+            pcall(function()
+                local lib = rawget(sharedEnv, 'Library')
+                if type(lib) == 'table' and lib.SetWatermark then
+                    lib:SetWatermark('Void  |  https://discord.gg/rqwt4PeWJU')
+                end
+            end)
+        end)
+        if not okTitle then
+            warn('[Void title]', errTitle)
+        end
+    end)
+
+    
+    -- TOP-LEFT VOID WATERMARK CHIP (like the small pill UI)
+    task.spawn(function()
+        local okChip, errChip = pcall(function()
+            task.wait(0.5)
+            local CoreGui = game:GetService('CoreGui')
+            -- remove old
+            for _, g in ipairs(CoreGui:GetChildren()) do
+                if g.Name == 'VoidWatermarkChip' then g:Destroy() end
+            end
+
+            local gui = Instance.new('ScreenGui')
+            gui.Name = 'VoidWatermarkChip'
+            gui.IgnoreGuiInset = true
+            gui.ResetOnSpawn = false
+            gui.DisplayOrder = 100
+            gui.Parent = CoreGui
+
+            local pill = Instance.new('Frame')
+            pill.Name = 'Pill'
+            pill.Size = UDim2.fromOffset(268, 28)
+            pill.Position = UDim2.fromOffset(12, 10)
+            pill.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
+            pill.BackgroundTransparency = 0.15
+            pill.BorderSizePixel = 0
+            pill.Active = true
+            pill.Parent = gui
+            Instance.new('UICorner', pill).CornerRadius = UDim.new(1, 0)
+            local stroke = Instance.new('UIStroke', pill)
+            stroke.Color = Color3.fromRGB(60, 60, 70)
+            stroke.Thickness = 1
+            stroke.Transparency = 0.3
+
+            -- drag anywhere on the chip
+            local UIS = game:GetService('UserInputService')
+            local dragging, dragStart, startPos
+            local function update(input)
+                local delta = input.Position - dragStart
+                pill.Position = UDim2.fromOffset(
+                    startPos.X.Offset + delta.X,
+                    startPos.Y.Offset + delta.Y
+                )
+            end
+            pill.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1
+                    or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                    dragStart = input.Position
+                    startPos = pill.Position
+                    input.Changed:Connect(function()
+                        if input.UserInputState == Enum.UserInputState.End then
+                            dragging = false
+                        end
+                    end)
+                end
+            end)
+            pill.InputChanged:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseMovement
+                    or input.UserInputType == Enum.UserInputType.Touch then
+                    if dragging then update(input) end
+                end
+            end)
+            UIS.InputChanged:Connect(function(input)
+                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+                    or input.UserInputType == Enum.UserInputType.Touch) then
+                    update(input)
+                end
+            end)
+
+            local icon = Instance.new('TextLabel')
+            icon.Size = UDim2.fromOffset(22, 22)
+            icon.Position = UDim2.fromOffset(6, 3)
+            icon.BackgroundTransparency = 1
+            icon.Text = '◆'
+            icon.Font = Enum.Font.GothamBold
+            icon.TextSize = 14
+            icon.TextColor3 = Color3.fromRGB(180, 120, 255)
+            icon.Parent = pill
+
+            local nameLab = Instance.new('TextLabel')
+            nameLab.Name = 'Name'
+            nameLab.Size = UDim2.fromOffset(48, 28)
+            nameLab.Position = UDim2.fromOffset(28, 0)
+            nameLab.BackgroundTransparency = 1
+            nameLab.Text = 'Void'
+            nameLab.Font = Enum.Font.GothamBold
+            nameLab.TextSize = 13
+            nameLab.TextXAlignment = Enum.TextXAlignment.Left
+            nameLab.TextColor3 = Color3.fromRGB(255, 255, 255)
+            nameLab.Parent = pill
+            local ns = Instance.new('UIStroke', nameLab)
+            ns.Thickness = 1.2
+            ns.Transparency = 0.2
+
+            local sep = Instance.new('TextLabel')
+            sep.Size = UDim2.fromOffset(10, 28)
+            sep.Position = UDim2.fromOffset(74, 0)
+            sep.BackgroundTransparency = 1
+            sep.Text = '|'
+            sep.Font = Enum.Font.Gotham
+            sep.TextSize = 13
+            sep.TextColor3 = Color3.fromRGB(120, 120, 130)
+            sep.Parent = pill
+
+            local disc = Instance.new('TextLabel')
+            disc.Name = 'Discord'
+            disc.Size = UDim2.fromOffset(180, 28)
+            disc.Position = UDim2.fromOffset(86, 0)
+            disc.BackgroundTransparency = 1
+            disc.Text = 'https://discord.gg/rqwt4PeWJU'
+            disc.Font = Enum.Font.Gotham
+            disc.TextSize = 12
+            disc.TextXAlignment = Enum.TextXAlignment.Left
+            disc.TextColor3 = Color3.fromRGB(160, 140, 255)
+            disc.Parent = pill
+            local ds = Instance.new('UIStroke', disc)
+            ds.Thickness = 1.0
+            ds.Transparency = 0.25
+
+            -- rainbow on Void name + soft on discord
+            task.spawn(function()
+                local hue = 0
+                while gui and gui.Parent do
+                    hue = (hue + 0.015) % 1
+                    local col = Color3.fromHSV(hue, 0.9, 1)
+                    local col2 = Color3.fromHSV((hue + 0.12) % 1, 0.85, 1)
+                    nameLab.TextColor3 = col
+                    ns.Color = col2
+                    disc.TextColor3 = col2
+                    ds.Color = col
+                    icon.TextColor3 = col
+                    task.wait(0.03)
+                end
+            end)
+
+            -- hide chip when main menu hidden (optional sync)
+            task.spawn(function()
+                while gui and gui.Parent do
+                    local lib = rawget(sharedEnv, 'Library')
+                    local show = true
+                    if type(lib) == 'table' then
+                        local ok, vis = pcall(function()
+                            if lib.IsVisible then return lib:IsVisible() end
+                            if typeof(lib.ScreenGui) == 'Instance' then return lib.ScreenGui.Enabled end
+                            return true
+                        end)
+                        if ok and vis ~= nil then show = vis and true or false end
+                    end
+                    gui.Enabled = show
+                    task.wait(0.15)
+                end
+            end)
+        end)
+        if not okChip then warn('[Void chip]', errChip) end
+    end)
+
+    local applicationLibrary = rawget(sharedEnv, 'Library')
+
+    if type(applicationLibrary) == 'table' and applicationLibrary ~= previousLibrary and typeof(applicationLibrary.ScreenGui) == 'Instance' then
+        applicationLibrary.ScreenGui.Destroying:Connect(function()
+            control.status = 'unloaded'
+            control.stopped = true
+
+            if heartbeatConnection then
+                heartbeatConnection:Disconnect()
+            end
+
+            sharedEnv.CERUS_UNNAMED_LOADED = previousLoaded
+
+            if rawget(sharedEnv, 'Library') == applicationLibrary then
+                sharedEnv.Library = previousLibrary
+                sharedEnv.Options = previousOptions
+                sharedEnv.Toggles = previousToggles
+            end
+        end)
+    end
+
+    return control
+end
+
+print[[Void
+https://discord.gg/rqwt4PeWJU
+]]
+
+function Backend.initialize(data)
+    local root = data[1]
+    local opcodes, destinations, jumpOperands, constantValues, globalNames, memberKeys, sourceRegisters = root[3], root[4], root[5], root[7], root[8], root[9], root[10]
+
+    assert(opcodes[1] == 7 and jumpOperands[1] == 17364, 'Unexpected input version')
+    assert(opcodes[17366] == 213 and opcodes[17880] == 42, 'Application boundary changed')
+
+    opcodes[17366] = 7
+    jumpOperands[17366] = 20413
+    opcodes[20414] = 213
+    jumpOperands[20414] = 2
+
+    rawset(globalNames, 20414, 'os')
+
+    opcodes[20415] = 116
+    destinations[20415] = 2
+    sourceRegisters[20415] = 2
+
+    rawset(memberKeys, 20415, 'clock')
+
+    opcodes[20416] = 171
+    sourceRegisters[20416] = 2
+    opcodes[20417] = 7
+    jumpOperands[20417] = 2752
+    opcodes[20418] = 167
+    destinations[20418] = 12
+
+    rawset(constantValues, 20418, 9395)
+
+    local function integrityProduct(inputValue)
+        return (inputValue + 63) % 100 * (inputValue % 32)
+    end
+    local function integrityModulo(inputValue)
+        return 327 * inputValue % 10000
+    end
+    local function integrityOffset(inputValue)
+        return 3650 * inputValue % 7115 + 3 * inputValue
+    end
+
+    opcodes[20419] = 167
+    destinations[20419] = 5
+
+    rawset(constantValues, 20419, integrityProduct)
+
+    opcodes[20420] = 167
+    destinations[20420] = 4
+
+    rawset(constantValues, 20420, integrityModulo)
+
+    opcodes[20421] = 167
+    destinations[20421] = 3
+
+    rawset(constantValues, 20421, integrityOffset)
+
+    opcodes[20422] = 167
+    destinations[20422] = 11
+
+    rawset(constantValues, 20422, 964)
+
+    opcodes[20423] = 167
+    destinations[20423] = 6
+
+    rawset(constantValues, 20423, 'Frame')
+
+    opcodes[20424] = 167
+    destinations[20424] = 7
+
+    rawset(constantValues, 20424, 'OutlineColor')
+
+    opcodes[20425] = 167
+    destinations[20425] = 8
+
+    rawset(constantValues, 20425, 'BindableEvent')
+
+    opcodes[20426] = 167
+    destinations[20426] = 9
+
+    rawset(constantValues, 20426, false)
+
+    opcodes[20427] = 167
+    destinations[20427] = 10
+
+    rawset(constantValues, 20427, true)
+
+    opcodes[20428] = 7
+    jumpOperands[20428] = 1128
+    opcodes[17880] = 7
+    jumpOperands[17880] = 20417
+end
+function Native.library(captures)
+    local capture09 = captures[9]
+    local capture11 = captures[11]
+    local uiLibrary = captures[0]
+    local capture10 = captures[10]
+    local capture17 = captures[17]
+    local playersService = captures[22]
+    local capture12 = captures[12]
+    local capture19 = captures[19]
+    local textService = captures[18]
+    local userInputService = captures[6]
+    local capture08 = captures[8]
+    local capture14 = captures[14]
+    local capture02 = captures[2]
+    local teamsService = captures[21]
+    local contextActionService = captures[13]
+    local capture01 = captures[1]
+    local capture05 = captures[5]
+    local capture03 = captures[3]
+    local capture16 = captures[16]
+    local capture20 = captures[20]
+    local capture04 = captures[4]
+    local capture07 = captures[7]
+    local capture23 = captures[23]
+    local capture15 = captures[15]
+
+    return function()
+        capture08[3][capture08[2] ] = function()
+            local players = playersService:GetPlayers()
+
+            for index = 1, #players do
+                __step(5)
+
+                players[index] = players[index].Name
+            end
+
+            table.sort(players, function(value028, value029)
+                return value028 < value029
+            end)
+
+            return players
+        end
+        capture11[3][capture11[2] ] = function()
+            local teams = teamsService:GetTeams()
+
+            for index2 = 1, #teams do
+                __step(6)
+
+                teams[index2] = teams[index2].Name
+            end
+
+            table.sort(teams, function(value032, value033)
+                return value032 < value033
+            end)
+
+            return teams
+        end
+
+        function uiLibrary:SafeCallback(callback, ...)
+            if not callback then
+                return
+            end
+            if not uiLibrary.NotifyOnError then
+                return callback(...)
+            end
+
+            local success, resultOrError = pcall(callback, ...)
+
+            if not success then
+                local matchStart, matchEnd = resultOrError:find(':%d+: ')
+
+                if not matchEnd then
+                    return uiLibrary:Notify(resultOrError)
+                end
+
+                return uiLibrary:Notify(resultOrError:sub(matchEnd + 1), 3)
+            end
+        end
+        function uiLibrary:AttemptSave()
+            if uiLibrary.SaveManager then
+                uiLibrary.SaveManager:Save()
+            end
+        end
+        function uiLibrary:Create(classOrInstance, properties)
+            local instance3 = classOrInstance
+
+            if typeof(classOrInstance) == 'string' then
+                instance3 = Instance.new(classOrInstance)
+            end
+
+            for key, value in next, properties do
+                __step(7)
+
+                local success2, resultOrError2 = pcall(function()
+                    instance3[key] = value
+                end)
+
+                if not success2 then
+                    capture17(resultOrError2)
+                end
+            end
+
+            return instance3
+        end
+        function uiLibrary:EnableFlagCopying(enabled)
+            uiLibrary.FlagCopying = enabled
+        end
+        function uiLibrary:ApplyTextStroke(label)
+            label.TextStrokeTransparency = 1
+
+            return uiLibrary:Create('UIStroke', {
+                Color = Color3.new(0, 0, 0),
+                Thickness = 1,
+                LineJoinMode = Enum.LineJoinMode.Miter,
+                Parent = label,
+            })
+        end
+        function uiLibrary:CreateLabel(properties2, isHud)
+            local textLabel = uiLibrary:Create('TextLabel', {
+                BackgroundTransparency = 1,
+                Font = uiLibrary.Font,
+                TextColor3 = uiLibrary.FontColor,
+                TextSize = 16,
+                TextStrokeTransparency = 0,
+            })
+
+            uiLibrary:ApplyTextStroke(textLabel)
+            uiLibrary:AddToRegistry(textLabel, {
+                TextColor3 = 'FontColor',
+            }, isHud)
+
+            return uiLibrary:Create(textLabel, properties2)
+        end
+        function uiLibrary:MakeDraggable(frame, dragHeight, respectDragLock)
+            frame.Active = true
+
+            frame.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    if respectDragLock == true and uiLibrary.CantDragForced == true then
+                        return
+                    end
+
+                    local dragOffset = Vector2.new(capture03.X - frame.AbsolutePosition.X, capture03.Y - frame.AbsolutePosition.Y)
+
+                    if dragOffset.Y > (dragHeight or 40) then
+                        return
+                    end
+
+                    while userInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
+                        __step(8)
+
+                        frame.Position = UDim2.new(0, capture03.X - dragOffset.X + frame.Size.X.Offset * frame.AnchorPoint.X, 0, capture03.Y - dragOffset.Y + frame.Size.Y.Offset * frame.AnchorPoint.Y)
+
+                        capture04:Wait()
+                    end
+                end
+            end)
+        end
+
+        local screenGui = Instance.new('ScreenGui', capture10)
+
+        function uiLibrary:MakeDraggableOutline(frame2, dragHeight2, respectDragLock2)
+            frame2.Active = true
+
+            frame2.InputBegan:Connect(function(input2)
+                if input2.UserInputType == Enum.UserInputType.MouseButton1 then
+                    if respectDragLock2 == true and uiLibrary.CantDragForced == true then
+                        return
+                    end
+
+                    local dragOffset2 = Vector2.new(capture03.X - frame2.AbsolutePosition.X, capture03.Y - frame2.AbsolutePosition.Y)
+
+                    if dragOffset2.Y > (dragHeight2 or 40) then
+                        return
+                    end
+
+                    local value070 = uiLibrary:Create(capture01[3][capture01[2] ], {
+                        Parent = screenGui,
+                        AnchorPoint = frame2.AnchorPoint,
+                        BackgroundTransparency = 1,
+                        Size = frame2.Size,
+                        Position = frame2.Position,
+                    })
+                    local uIStroke = uiLibrary:Create('UIStroke', {
+                        Parent = value070,
+                        Color = uiLibrary.AccentColor or Color3.new(0, 0, 0),
+                    })
+
+                    uiLibrary.IsDragging = true
+
+                    while(userInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)) do
+                        __step(9)
+
+                        value070.Position = UDim2.new(0, capture03.X - dragOffset2.X + frame2.Size.X.Offset * frame2.AnchorPoint.X, 0, capture03.Y - dragOffset2.Y + frame2.Size.Y.Offset * frame2.AnchorPoint.Y)
+                        uIStroke.Color = uiLibrary.AccentColor or Color3.new(0, 0, 0)
+
+                        capture04:Wait()
+                    end
+
+                    frame2.Position = value070.Position
+
+                    value070:Destroy()
+
+                    uiLibrary.IsDragging = false
+                end
+                if input2.UserInputType == Enum.UserInputType.Touch then
+                    if respectDragLock2 == true and uiLibrary.CantDragForced == true then
+                        return
+                    end
+
+                    local value072 = Vector2.new(input2.Position.X - frame2.AbsolutePosition.X, input2.Position.Y - frame2.AbsolutePosition.Y)
+
+                    if value072.Y > (dragHeight2 or 40) then
+                        return
+                    end
+
+                    local value073 = uiLibrary:Create(capture01[3][capture01[2] ], {
+                        Parent = screenGui,
+                        AnchorPoint = frame2.AnchorPoint,
+                        BackgroundTransparency = 1,
+                        Size = frame2.Size,
+                        Position = frame2.Position,
+                    })
+                    local uIStroke2 = uiLibrary:Create('UIStroke', {
+                        Parent = value073,
+                        Color = uiLibrary.AccentColor or Color3.new(0, 0, 0),
+                    })
+
+                    uiLibrary.IsDragging = true
+
+                    local value075 = true
+                    local value076
+
+                    value076 = input2.Changed:Connect(function()
+                        if input2.UserInputState == Enum.UserInputState.End then
+                            value075 = false
+                        end
+                    end)
+
+                    while value075 do
+                        __step(10)
+
+                        value073.Position = UDim2.new(0, input2.Position.X - value072.X + frame2.Size.X.Offset * frame2.AnchorPoint.X, 0, input2.Position.Y - value072.Y + frame2.Size.Y.Offset * frame2.AnchorPoint.Y)
+                        uIStroke2.Color = uiLibrary.AccentColor or Color3.new(0, 0, 0)
+
+                        capture04:Wait()
+                    end
+
+                    frame2.Position = value073.Position
+
+                    if value076 then
+                        value076:Disconnect()
+                    end
+
+                    value073:Destroy()
+
+                    uiLibrary.IsDragging = false
+                end
+            end)
+        end
+        function uiLibrary:MakeDraggableUsingParent(handle, frame3, dragHeight3, respectDragLock3)
+            handle.Active = true
+
+            if uiLibrary.IsMobile == false then
+                handle.InputBegan:Connect(function(input3)
+                    if input3.UserInputType == Enum.UserInputType.MouseButton1 or input3.UserInputType == Enum.UserInputType.Touch then
+                        if respectDragLock3 == true and uiLibrary.CantDragForced == true then
+                            return
+                        end
+
+                        local dragOffset3 = Vector2.new(capture03.X - frame3.AbsolutePosition.X, capture03.Y - frame3.AbsolutePosition.Y)
+
+                        if dragOffset3.Y > (dragHeight3 or 40) then
+                            return
+                        end
+
+                        while userInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
+                            __step(11)
+
+                            frame3.Position = UDim2.new(0, capture03.X - dragOffset3.X + frame3.Size.X.Offset * frame3.AnchorPoint.X, 0, capture03.Y - dragOffset3.Y + frame3.Size.Y.Offset * frame3.AnchorPoint.Y)
+
+                            capture04:Wait()
+                        end
+                    end
+                end)
+            else
+                uiLibrary:MakeDraggable(frame3, dragHeight3, respectDragLock3)
+            end
+        end
+        function uiLibrary:MakeResizable(value085, value086)
+            value085.Active = true
+
+            local value087 = 25
+            local value088 = 0.5
+            local value089 = uiLibrary:Create(capture01[3][capture01[2] ], {
+                SizeConstraint = Enum.SizeConstraint.RelativeXX,
+                BackgroundColor3 = Color3.new(0, 0, 0),
+                BackgroundTransparency = 1,
+                BorderSizePixel = 0,
+                Size = UDim2.new(0, 30, 0, 30),
+                Position = UDim2.new(1, -30, 1, -30),
+                Visible = true,
+                ClipsDescendants = true,
+                ZIndex = 1,
+                Parent = value085,
+            })
+            local imageButton = uiLibrary:Create('ImageButton', {
+                BackgroundColor3 = uiLibrary.AccentColor,
+                BackgroundTransparency = 1,
+                BorderSizePixel = 0,
+                Size = UDim2.new(2, 0, 2, 0),
+                Position = UDim2.new(1, -30, 1, -30),
+                ZIndex = 2,
+                Parent = value089,
+            })
+            local uICorner = uiLibrary:Create('UICorner', {
+                CornerRadius = UDim.new(0.5, 0),
+                Parent = imageButton,
+            })
+
+            uiLibrary:AddToRegistry(imageButton, {
+                BackgroundColor3 = 'AccentColor',
+            })
+
+            value089.Size = UDim2.fromOffset(value087, value087)
+            value089.Position = UDim2.new(1, -value087, 1, -value087)
+            value086 = value086 or uiLibrary.MinSize
+
+            local value092
+            local value093, uIStroke3 = nil, uiLibrary:Create('UIStroke', {
+                Color = uiLibrary.AccentColor or Color3.new(0, 0, 0),
+            })
+
+            uIStroke3.Color = uiLibrary.AccentColor or Color3.new(0, 0, 0)
+
+            local function value095(value096)
+                imageButton.Position = UDim2.new()
+                imageButton.Size = UDim2.new(2, 0, 2, 0)
+                imageButton.Parent = value089
+                imageButton.BackgroundTransparency = value096
+                uICorner.Parent = imageButton
+                value092 = nil
+
+                if value093 then
+                    uIStroke3.Parent = nil
+                    value085.Size = value093.Size
+
+                    value093:Destroy()
+                end
+            end
+
+            if uiLibrary.IsMobile ~= true then
+                imageButton.MouseButton1Down:Connect(function()
+                    if value092 then
+                        return
+                    end
+
+                    value092 = Vector2.new(capture03.X - (value085.AbsolutePosition.X + value085.AbsoluteSize.X), capture03.Y - (value085.AbsolutePosition.Y + value085.AbsoluteSize.Y))
+                    value093 = uiLibrary:Create(capture01[3][capture01[2] ], {
+                        Parent = screenGui,
+                        AnchorPoint = value085.AnchorPoint,
+                        BackgroundTransparency = 1,
+                        Size = value085.Size,
+                        Position = value085.Position,
+                    })
+                    uIStroke3.Parent = value093
+                    imageButton.BackgroundTransparency = 1
+                    imageButton.Size = UDim2.fromOffset(uiLibrary.ScreenGui.AbsoluteSize.X, uiLibrary.ScreenGui.AbsoluteSize.Y)
+                    imageButton.Position = UDim2.new()
+                    uICorner.Parent = nil
+                    imageButton.Parent = uiLibrary.ScreenGui
+                end)
+                imageButton.MouseMoved:Connect(function()
+                    if not value092 then
+                        return
+                    end
+
+                    local value097 = Vector2.new(capture03.X - value092.X, capture03.Y - value092.Y)
+                    local value098 = Vector2.new(math.clamp(value097.X - value085.AbsolutePosition.X, value086.X, math.huge), math.clamp(value097.Y - value085.AbsolutePosition.Y, value086.Y, math.huge))
+
+                    value093.Size = UDim2.fromOffset(value098.X, value098.Y)
+                end)
+                imageButton.MouseButton1Up:Connect(function()
+                    value095(value088)
+                end)
+            else
+                imageButton.InputBegan:Connect(function(input4)
+                    if input4.UserInputType ~= Enum.UserInputType.Touch then
+                        return
+                    end
+                    if value092 then
+                        return
+                    end
+
+                    value092 = Vector2.new(input4.Position.X - (value085.AbsolutePosition.X + value085.AbsoluteSize.X), input4.Position.Y - (value085.AbsolutePosition.Y + value085.AbsoluteSize.Y))
+                    value093 = uiLibrary:Create(capture01[3][capture01[2] ], {
+                        Parent = screenGui,
+                        AnchorPoint = value085.AnchorPoint,
+                        BackgroundTransparency = 1,
+                        Size = value085.Size,
+                        Position = value085.Position,
+                    })
+                    uIStroke3.Parent = value093
+                end)
+                imageButton.InputChanged:Connect(function(input5)
+                    if input5.UserInputType ~= Enum.UserInputType.Touch then
+                        return
+                    end
+                    if not value092 then
+                        return
+                    end
+
+                    local value101 = Vector2.new(input5.Position.X - value092.X, input5.Position.Y - value092.Y)
+                    local value102 = Vector2.new(math.clamp(value101.X - value085.AbsolutePosition.X, value086.X, math.huge), math.clamp(value101.Y - value085.AbsolutePosition.Y, value086.Y, math.huge))
+
+                    value093.Size = UDim2.fromOffset(value102.X, value102.Y)
+                end)
+                imageButton.InputEnded:Connect(function(input6)
+                    if input6.UserInputType ~= Enum.UserInputType.Touch then
+                        return
+                    end
+
+                    value095(value088)
+                end)
+            end
+
+            value095(value088)
+        end
+        function uiLibrary:AddToolTip(text, target)
+            local textWidth, textHeight = uiLibrary:GetTextBounds(text, uiLibrary.Font, 14)
+            local value109 = uiLibrary:Create(capture01[3][capture01[2] ], {
+                BackgroundColor3 = uiLibrary.MainColor,
+                BorderColor3 = uiLibrary.OutlineColor,
+                Size = UDim2.fromOffset(textWidth + 5, textHeight + 4),
+                ZIndex = 100,
+                Parent = uiLibrary.ScreenGui,
+                Visible = false,
+            })
+            local value110 = uiLibrary:CreateLabel({
+                Position = UDim2.fromOffset(3, 1),
+                Size = UDim2.fromOffset(textWidth, textHeight),
+                TextSize = 14,
+                Text = text,
+                TextColor3 = uiLibrary.FontColor,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                ZIndex = value109.ZIndex + 1,
+                Parent = value109,
+            })
+
+            uiLibrary:AddToRegistry(value109, {
+                BackgroundColor3 = 'MainColor',
+                BorderColor3 = capture15[3][capture15[2] ],
+            })
+            uiLibrary:AddToRegistry(value110, {
+                TextColor3 = 'FontColor',
+            })
+
+            local value111 = false
+
+            target.MouseEnter:Connect(function()
+                if uiLibrary:MouseIsOverOpenedFrame() then
+                    return
+                end
+
+                value111 = true
+                value109.Position = UDim2.fromOffset(capture03.X + 15, capture03.Y + 12)
+                value109.Visible = true
+
+                while value111 do
+                    __step(12)
+                    capture19.Heartbeat:Wait()
+
+                    value109.Position = UDim2.fromOffset(capture03.X + 15, capture03.Y + 12)
+                end
+            end)
+            target.MouseLeave:Connect(function()
+                value111 = false
+                value109.Visible = false
+            end)
+
+            if capture12[3][capture12[2] ] then
+                capture12[3][capture12[2] ]:GetPropertyChangedSignal('Visible'):Connect(function()
+                    if capture12[3][capture12[2] ].Visible == false then
+                        value111 = false
+                        value109.Visible = false
+                    end
+                end)
+            end
+        end
+        function uiLibrary:OnHighlight(target2, styledInstance, highlightProperties, normalProperties, canHighlight)
+            local function value118()
+                local registryEntry = uiLibrary.RegistryMap[styledInstance]
+
+                for key2, value2 in next, normalProperties do
+                    __step(13)
+
+                    styledInstance[key2] = uiLibrary[value2] or value2
+
+                    if registryEntry and registryEntry.Properties[key2] then
+                        registryEntry.Properties[key2] = value2
+                    end
+                end
+            end
+            local function value122()
+                if canHighlight and not canHighlight() then
+                    value118()
+
+                    return
+                end
+
+                local registryEntry2 = uiLibrary.RegistryMap[styledInstance]
+
+                for key3, value3 in next, highlightProperties do
+                    __step(14)
+
+                    styledInstance[key3] = uiLibrary[value3] or value3
+
+                    if registryEntry2 and registryEntry2.Properties[key3] then
+                        registryEntry2.Properties[key3] = value3
+                    end
+                end
+            end
+
+            target2.MouseEnter:Connect(function()
+                value122()
+            end)
+            target2.MouseMoved:Connect(function()
+                value122()
+            end)
+            target2.MouseLeave:Connect(function()
+                value118()
+            end)
+        end
+        function uiLibrary:MouseIsOverOpenedFrame()
+            for key4, value4 in next, uiLibrary.OpenedFrames do
+                __step(15)
+
+                local absolutePosition, absoluteSize = key4.AbsolutePosition, key4.AbsoluteSize
+
+                if capture03.X >= absolutePosition.X and capture03.X <= absolutePosition.X + absoluteSize.X and capture03.Y >= absolutePosition.Y and capture03.Y <= absolutePosition.Y + absoluteSize.Y then
+                    return true
+                end
+            end
+        end
+        function uiLibrary:IsMouseOverFrame(frame4)
+            local absolutePosition2, absoluteSize2 = frame4.AbsolutePosition, frame4.AbsoluteSize
+
+            if capture03.X >= absolutePosition2.X and capture03.X <= absolutePosition2.X + absoluteSize2.X and capture03.Y >= absolutePosition2.Y and capture03.Y <= absolutePosition2.Y + absoluteSize2.Y then
+                return true
+            end
+        end
+        function uiLibrary:UpdateDependencyBoxes()
+            for key5, value5 in next, uiLibrary.DependencyBoxes do
+                __step(16)
+                value5:Update()
+            end
+        end
+        function uiLibrary:MapValue(inputValue, inputMin, inputMax, outputMin, outputMax)
+            return (1 - (inputValue - inputMin) / (inputMax - inputMin)) * outputMin + (inputValue - inputMin) / (inputMax - inputMin) * outputMax
+        end
+        function uiLibrary:GetTextBounds(text2, font, fontSize, bounds)
+            local textSize = textService:GetTextSize(text2, fontSize, font, bounds or Vector2.new(1920, 1080))
+
+            return textSize.X, textSize.Y
+        end
+        function uiLibrary:GetDarkerColor(color)
+            local hue, saturation, brightness = Color3.toHSV(color)
+
+            return Color3.fromHSV(hue, saturation, brightness / 1.5)
+        end
+
+        uiLibrary.AccentColorDark = uiLibrary:GetDarkerColor(uiLibrary.AccentColor)
+
+        function uiLibrary:AddToRegistry(instance, properties3, isHud2)
+            local registryIndex = #uiLibrary.Registry + 1
+            local registryEntry3 = {
+                Instance = instance,
+                Properties = properties3,
+                Idx = registryIndex,
+            }
+
+            table.insert(uiLibrary.Registry, registryEntry3)
+
+            uiLibrary.RegistryMap[instance] = registryEntry3
+
+            if isHud2 then
+                table.insert(uiLibrary.HudRegistry, registryEntry3)
+            end
+        end
+        function uiLibrary:RemoveFromRegistry(instance2)
+            local registryEntry4 = uiLibrary.RegistryMap[instance2]
+
+            if registryEntry4 then
+                for index3 = #uiLibrary.Registry, 1, -1 do
+                    __step(17)
+
+                    if uiLibrary.Registry[index3] == registryEntry4 then
+                        table.remove(uiLibrary.Registry, index3)
+                    end
+                end
+                for index4 = #uiLibrary.HudRegistry, 1, -1 do
+                    __step(18)
+
+                    if uiLibrary.HudRegistry[index4] == registryEntry4 then
+                        table.remove(uiLibrary.HudRegistry, index4)
+                    end
+                end
+
+                uiLibrary.RegistryMap[instance2] = nil
+            end
+        end
+        function uiLibrary:UpdateColorsUsingRegistry()
+            for key6, value6 in next, uiLibrary.Registry do
+                __step(19)
+
+                for key7, value7 in next, value6.Properties do
+                    __step(20)
+
+                    if typeof(value7) == 'string' then
+                        value6.Instance[key7] = uiLibrary[value7]
+                    elseif typeof(value7) == 'function' then
+                        value6.Instance[key7] = value7()
+                    end
+                end
+            end
+        end
+        function uiLibrary:GiveSignal(connection)
+            table.insert(uiLibrary.Signals, connection)
+        end
+        function uiLibrary:Unload()
+            for index5 = #uiLibrary.Signals, 1, -1 do
+                __step(21)
+
+                local connection2 = table.remove(uiLibrary.Signals, index5)
+
+                connection2:Disconnect()
+            end
+
+            if uiLibrary.OnUnload then
+                uiLibrary.OnUnload()
+            end
+
+            contextActionService:UnbindAction('Freeze')
+            capture16:Destroy()
+            capture20:Destroy()
+            capture05:Destroy()
+            capture09:Destroy()
+        end
+        function uiLibrary:CreateEvent(eventName)
+            self.Events[eventName] = Instance.new(capture02[3][capture02[2] ])
+        end
+        function uiLibrary:FireEvent(eventName2, ...)
+            self.Events[eventName2]:Fire(...)
+        end
+        function uiLibrary:OnEvent(eventName3)
+            return self.Events[eventName3].Event
+        end
+        function uiLibrary:OnUnload(callback2)
+            uiLibrary.OnUnload = callback2
+        end
+
+        local inputCallbacks = {}
+
+        function uiLibrary:BindToInput(inputType, callback3)
+            inputCallbacks[inputType] = inputCallbacks[inputType] or {}
+
+            table.insert(inputCallbacks[inputType], callback3)
+        end
+
+        uiLibrary:GiveSignal(userInputService.InputBegan:Connect(function(input7, ...)
+            if not capture07[3][capture07[2] ] then
+                return
+            end
+
+            local value189 = inputCallbacks[input7.KeyCode] or inputCallbacks[input7.UserInputType]
+
+            if value189 then
+                for key8, value8 in pairs(value189)do
+                    __step(22)
+                    task.spawn(value8, input7, ...)
+                end
+            end
+        end))
+
+        function uiLibrary:AddContextMenu(value193, value194)
+            local panel = {Visible = false}
+
+            panel.Options = {}
+            panel.Container = uiLibrary:Create('ImageButton', {
+                BorderColor3 = Color3.new(),
+                ZIndex = 14,
+                Visible = false,
+                Parent = capture09,
+                Image = '',
+                Active = false,
+                AutoButtonColor = false,
+            })
+            panel.Inner = uiLibrary:Create(capture01[3][capture01[2] ], {
+                BackgroundColor3 = uiLibrary.BackgroundColor,
+                BorderColor3 = uiLibrary.OutlineColor,
+                BorderMode = Enum.BorderMode.Inset,
+                Size = UDim2.fromScale(1, 1),
+                ZIndex = 15,
+                Parent = panel.Container,
+            })
+
+            uiLibrary:Create('UIListLayout', {
+                Name = 'Layout',
+                HorizontalAlignment = Enum.HorizontalAlignment.Left,
+                FillDirection = Enum.FillDirection.Vertical,
+                SortOrder = Enum.SortOrder.LayoutOrder,
+                Parent = panel.Inner,
+            })
+            uiLibrary:Create('UIPadding', {
+                Name = 'Padding',
+                PaddingLeft = UDim.new(0, 0),
+                Parent = panel.Inner,
+            })
+
+            local function value196()
+                panel.Container.Position = UDim2.fromOffset(value193.AbsolutePosition.X + value193.AbsoluteSize.X + 4, value193.AbsolutePosition.Y + 1)
+            end
+            local function value197()
+                local value198 = 60
+
+                for key9, value9 in next, panel.Inner:GetChildren()do
+                    __step(23)
+
+                    if value9:IsA('TextLabel') then
+                        value198 = math.max(value198, value9.TextBounds.X)
+                    end
+                end
+
+                panel.Container.Size = UDim2.fromOffset(value198 + 8, panel.Inner.Layout.AbsoluteContentSize.Y + 4)
+            end
+
+            local value201 = false
+
+            (value194 or value193).InputBegan:Connect(function(input8)
+                if input8.UserInputType == Enum.UserInputType.MouseButton1 and not uiLibrary:MouseIsOverOpenedFrame() then
+                    return panel:Hide()
+                elseif input8.UserInputType == Enum.UserInputType.MouseButton2 and not uiLibrary:MouseIsOverOpenedFrame() then
+                    return panel:Show()
+                end
+            end)
+            uiLibrary:BindToInput(Enum.UserInputType.MouseButton1, function()
+                if value201 and not uiLibrary:IsMouseOverFrame(panel.Container) then
+                    panel:Hide()
+                end
+            end)
+            uiLibrary:BindToInput(Enum.UserInputType.MouseButton2, function()
+                if value201 and not uiLibrary:IsMouseOverFrame(panel.Container) and not uiLibrary:IsMouseOverFrame(value193) then
+                    panel:Hide()
+                end
+            end)
+            task.spawn(value196)
+            task.spawn(value197)
+            uiLibrary:AddToRegistry(panel.Inner, {
+                BackgroundColor3 = 'BackgroundColor',
+                BorderColor3 = capture15[3][capture15[2] ],
+            })
+
+            function panel:Show()
+                value196()
+                value197()
+
+                value201 = true
+
+                for key10, value10 in next, uiLibrary.OpenedFrames do
+                    __step(24)
+
+                    if key10.Name == 'Color' then
+                        key10.Visible = false
+                        uiLibrary.OpenedFrames[key10] = nil
+                    end
+                end
+
+                self.Container.Visible = true
+                uiLibrary.OpenedFrames[panel.Container] = true
+            end
+            function panel:Hide()
+                value201 = false
+                self.Container.Visible = false
+
+                task.wait()
+
+                uiLibrary.OpenedFrames[panel.Container] = nil
+            end
+            function panel:AddOption(text3, callback4)
+                if type(callback4) ~= 'function' then
+                    callback4 = function() end
+                end
+
+                local value210 = uiLibrary:CreateLabel({
+                    Active = false,
+                    Size = UDim2.new(1, 0, 0, 15),
+                    TextSize = 13,
+                    Text = text3,
+                    ZIndex = 16,
+                    Parent = self.Inner,
+                    TextXAlignment = Enum.TextXAlignment.Center,
+                })
+
+                uiLibrary:OnHighlight(value210, value210, {
+                    TextColor3 = 'AccentColor',
+                }, {
+                    TextColor3 = 'FontColor',
+                })
+                value210.InputBegan:Connect(function(input9)
+                    if input9.UserInputType ~= Enum.UserInputType.MouseButton1 then
+                        return
+                    end
+
+                    callback4()
+                end)
+
+                return value210
+            end
+
+            return panel
+        end
+
+        uiLibrary:GiveSignal(capture09.DescendantRemoving:Connect(function(value212)
+            if capture07[3][capture07[2] ] and uiLibrary.RegistryMap[value212] then
+                uiLibrary:RemoveFromRegistry(value212)
+            end
+        end))
+
+        function uiLibrary:SetWatermarkVisibility(visible)
+            uiLibrary.Watermark.Visible = visible
+        end
+        function uiLibrary:SetWatermark(text4)
+            local textWidth2, textHeight2 = uiLibrary:GetTextBounds(text4, uiLibrary.Font, 14)
+
+            uiLibrary.Watermark.Size = UDim2.new(0, textWidth2 + 15, 0, textHeight2 * 1.5 + 3)
+            uiLibrary.WatermarkText.Text = text4
+        end
+
+        local value219 = {
+            BarPosition = {
+                Top = UDim2.new(0, -1, 0, 0),
+                Left = UDim2.new(0, -1, 0, -1),
+                Right = UDim2.new(1, -2, 0, -1),
+                Bottom = UDim2.new(0, -1, 1, -2),
+            },
+            BarSize = {
+                Top = UDim2.new(1, 3, 0, 2),
+                Left = UDim2.new(0, 3, 1, 2),
+                Right = UDim2.new(0, 3, 1, 2),
+                Bottom = UDim2.new(1, 3, 0, 2),
+            },
+        }
+        local notificationStyle = uiLibrary.NotificationStyle
+        local charFn, maxFn = string.char, math.max
+        local value223 = function()
+            local overrideColor = notificationStyle.OverrideColor
+
+            if overrideColor then
+                return overrideColor()
+            end
+
+            return uiLibrary.MainColor, uiLibrary.AccentColor, uiLibrary.OutlineColor, uiLibrary.FontColor
+        end
+        local value225
+
+        do
+            local value226 = uiLibrary:Create(capture01[3][capture01[2] ], {
+                BorderColor3 = Color3.new(0, 0, 0),
+                Position = UDim2.new(0, 100, 0, 10),
+                ClipsDescendants = true,
+                ZIndex = 100,
+            })
+            local value227 = uiLibrary:Create(capture01[3][capture01[2] ], {
+                BorderMode = Enum.BorderMode.Inset,
+                Size = UDim2.new(1, 0, 1, 0),
+                ZIndex = 101,
+                Parent = value226,
+                Name = 'inner',
+            })
+            local value228 = uiLibrary:Create(capture01[3][capture01[2] ], {
+                BackgroundColor3 = Color3.new(1, 1, 1),
+                BorderSizePixel = 0,
+                Position = UDim2.new(0, 1, 0, 1),
+                Size = UDim2.new(1, -2, 1, -2),
+                ZIndex = 102,
+                Parent = value227,
+                Name = 'inner',
+            })
+            local uIGradient = uiLibrary:Create('UIGradient', {
+                Rotation = -90,
+                Parent = value228,
+            })
+            local value230 = uiLibrary:CreateLabel({
+                Position = UDim2.new(0, 4, 0, 0),
+                Size = UDim2.new(1, -4, 1, 0),
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextSize = 14,
+                ZIndex = 103,
+                Name = 'label',
+                Parent = value228,
+            })
+            local value231 = uiLibrary:Create(capture01[3][capture01[2] ], {
+                BorderSizePixel = 0,
+                ZIndex = 104,
+                Name = 'bar',
+                Parent = value226,
+            })
+
+            value225 = value226
+        end
+
+        function uiLibrary:CreatePopout(settings)
+            if type(settings.Title) ~= 'string' then
+                settings.Title = 'No title'
+            end
+            if typeof(settings.Position) ~= 'UDim2' then
+                settings.Position = UDim2.fromOffset(175, 50)
+            end
+
+            local screenGui2 = Instance.new('ScreenGui')
+
+            capture23(screenGui2)
+
+            screenGui2.ZIndexBehavior = Enum.ZIndexBehavior.Global
+            screenGui2.Parent = capture10
+            screenGui2.DisplayOrder = (settings.ZIndex or 0) + 19
+
+            if settings.Center then
+                settings.AnchorPoint = Vector2.new(0.5, 0.5)
+                settings.Position = UDim2.fromScale(0.5, 0.5)
+            end
+
+            local popout = {}
+            local value236 = uiLibrary:Create(capture01[3][capture01[2] ], {
+                AnchorPoint = settings.AnchorPoint,
+                BackgroundColor3 = Color3.new(0, 0, 0),
+                BorderSizePixel = 0,
+                Position = settings.Position,
+                Size = UDim2.fromOffset(settings.Size.X, settings.Size.Y),
+                Visible = settings.AutoShow,
+                ZIndex = 1,
+                Parent = screenGui2,
+            })
+
+            if not settings.RemoveTopbar then
+                uiLibrary:MakeDraggableOutline(value236, 25)
+            end
+
+            local value237 = uiLibrary:Create(capture01[3][capture01[2] ], {
+                BackgroundColor3 = uiLibrary.MainColor,
+                BorderColor3 = uiLibrary.OutlineColor,
+                BorderMode = Enum.BorderMode.Inset,
+                Position = UDim2.new(0, 1, 0, 1),
+                Size = UDim2.new(1, -2, 1, -2),
+                ZIndex = 1,
+                Parent = value236,
+            })
+
+            uiLibrary:AddToRegistry(value237, {
+                BackgroundColor3 = 'MainColor',
+                BorderColor3 = capture15[3][capture15[2] ],
+            })
+
+            if not settings.RemoveTopbar then
+                local value238 = uiLibrary:CreateLabel({
+                    Position = UDim2.new(0, 0, 0, 0),
+                    Size = UDim2.new(1, 0, 0, 25),
+                    Text = settings.Title or '',
+                    TextXAlignment = Enum.TextXAlignment.Center,
+                    ZIndex = 1,
+                    Font = uiLibrary.Font,
+                    Parent = value237,
+                })
+                local textLabel2 = uiLibrary:Create('TextLabel', {
+                    BackgroundTransparency = 1,
+                    Font = uiLibrary.Font,
+                    TextColor3 = uiLibrary.AccentColor,
+                    TextSize = 16,
+                    TextStrokeTransparency = 0,
+                    Position = UDim2.new(0, -8, 0, 0),
+                    Size = UDim2.new(1, 0, 0, 25),
+                    Text = settings.Version or '',
+                    RichText = true,
+                    TextXAlignment = Enum.TextXAlignment.Right,
+                    ZIndex = 1,
+                    Parent = value237,
+                })
+
+                uiLibrary:AddToRegistry(textLabel2, {
+                    TextColor3 = 'AccentColor',
+                })
+            end
+
+            local value240 = settings.RemoveTopbar and 8 or 25
+            local value241 = settings.RemoveTopbar and -16 or -33
+            local value242 = uiLibrary:Create(capture01[3][capture01[2] ], {
+                BackgroundColor3 = uiLibrary.BackgroundColor,
+                BorderColor3 = uiLibrary.OutlineColor,
+                Position = UDim2.new(0, 8, 0, value240),
+                Size = UDim2.new(1, -16, 1, value241),
+                ZIndex = 1,
+                Parent = value237,
+            })
+
+            uiLibrary:AddToRegistry(value242, {
+                BackgroundColor3 = 'BackgroundColor',
+                BorderColor3 = capture15[3][capture15[2] ],
+            })
+
+            local value243 = uiLibrary:Create(capture01[3][capture01[2] ], {
+                BackgroundColor3 = uiLibrary.BackgroundColor,
+                BorderColor3 = Color3.new(0, 0, 0),
+                BorderMode = Enum.BorderMode.Inset,
+                Position = UDim2.new(0, 0, 0, 0),
+                Size = UDim2.new(1, 0, 1, 0),
+                ZIndex = 1,
+                Parent = value242,
+            })
+
+            uiLibrary:AddToRegistry(value243, {
+                BackgroundColor3 = 'BackgroundColor',
+            })
+
+            local value244 = uiLibrary:Create(capture01[3][capture01[2] ], {
+                BackgroundColor3 = uiLibrary.BackgroundColor,
+                BorderColor3 = uiLibrary.OutlineColor,
+                Position = UDim2.new(0, 8, 0, 8),
+                Size = UDim2.new(1, -16, 1, -16),
+                ZIndex = 2,
+                Visible = true,
+                Parent = value243,
+            })
+            local value245 = uiLibrary:Create(capture01[3][capture01[2] ], {
+                BackgroundTransparency = 1,
+                Parent = value244,
+                Size = UDim2.fromScale(1, 1),
+                Position = UDim2.fromOffset(2, 2),
+            })
+
+            uiLibrary:Create('UIListLayout', {
+                Padding = UDim.new(0, 0),
+                FillDirection = Enum.FillDirection.Vertical,
+                SortOrder = Enum.SortOrder.LayoutOrder,
+                HorizontalAlignment = Enum.HorizontalAlignment.Left,
+                Parent = value245,
+            })
+            uiLibrary:AddToRegistry(value244, {
+                BackgroundColor3 = 'BackgroundColor',
+                BorderColor3 = capture15[3][capture15[2] ],
+            })
+            uiLibrary:AddToRegistry(value245, {
+                BackgroundColor3 = 'MainColor',
+                BorderColor3 = capture15[3][capture15[2] ],
+            })
+
+            popout.Holder = value236
+            popout.Container = value245
+
+            function popout:Resize()
+                local contentHeight = 0
+
+                for key11, value11 in next, value245:GetChildren()do
+                    __step(25)
+
+                    if not value11:IsA('UIListLayout') and value11.Visible then
+                        contentHeight = contentHeight + value11.AbsoluteSize.Y
+                    end
+                end
+
+                value236.Size = UDim2.fromOffset(settings.Size.X, 16 + contentHeight + (value245.AbsolutePosition.Y - value236.AbsolutePosition.Y))
+            end
+            function popout:Toggle()
+                value236.Visible = not value236.Visible
+            end
+            function popout:GetSize()
+                return value245.AbsoluteSize
+            end
+
+            value245:GetPropertyChangedSignal('AbsoluteSize'):Connect(function()
+                task.wait()
+                popout:Resize()
+            end)
+            popout:Resize()
+            setmetatable(popout, capture14)
+
+            return popout
+        end
+
+        local newFn, newFn2, newFn3 = UDim2.new, ColorSequence.new, ColorSequenceKeypoint.new
+
+        function uiLibrary:Notify(text5, duration)
+            local textWidth3, textHeight3 = uiLibrary:GetTextBounds(text5, uiLibrary.Font, 14)
+
+            textHeight3 = textHeight3 + 7
+
+            local transparency = notificationStyle.Transparency
+            local value261, value262, value263, value264 = value223()
+            local value265 = value225:Clone()
+
+            value265.BackgroundColor3 = value261
+            value265.Name = charFn(256 - maxFn(1, #text5 % 256))
+            value265.Size = newFn(0, 0, 0, textHeight3)
+            value265.Transparency = transparency
+
+            local value266 = value265.inner
+
+            value266.BackgroundColor3 = value261
+            value266.BorderColor3 = value263
+            value266.Transparency = transparency
+
+            local value267 = value266.inner
+
+            value267.Transparency = transparency
+
+            local uIGradient2 = value267.UIGradient
+
+            uIGradient2.Color = newFn2({
+                newFn3(0, uiLibrary:GetDarkerColor(value261)),
+                newFn3(1, value261),
+            })
+
+            local value269 = value267.label
+
+            value269.Text = text5
+            value269.TextColor3 = value264
+
+            local value270 = value265.bar
+
+            value270.BackgroundColor3 = value262
+            value270.Size = value219.BarSize[notificationStyle.BarSide] or newFn(0, 3, 1, 2)
+            value270.Position = value219.BarPosition[notificationStyle.BarSide]
+            value265.Parent = uiLibrary.NotificationArea
+
+            pcall(value265.TweenSize, value265, UDim2.new(0, textWidth3 + 8 + 4, 0, textHeight3), 'Out', 'Quad', 0.4, true)
+            task.spawn(function()
+                wait(duration or 5)
+                pcall(value265.TweenSize, value265, UDim2.new(0, 0, 0, textHeight3), 'Out', 'Quad', 0.4, true)
+                wait(0.4)
+                value265:Destroy()
+            end)
+        end
+        function uiLibrary:IsVisible()
+            return capture07[3][capture07[2] ]
+        end
+
+        uiLibrary:CreateEvent('VisibilityChanged')
+    end
+end
+function Native.configuration(captures)
+    local toggles = captures[2]
+    local options = captures[1]
+    local capture03 = captures[3]
+    local configManager = captures[0]
+
+    return function()
+        local cloneReference = cloneref or function(value007)
+            return value007
+        end
+        local httpService = cloneReference(game:GetService('HttpService'))
+        local isfolderFn, isfileFn, listfilesFn = isfolder, isfile, listfiles
+
+        do
+            configManager.Folder = ''
+            configManager.Ignore = {}
+            configManager.Parser = {
+                Toggle = {
+                    Save = function(optionId, option)
+                        return {
+                            type = 'Toggle',
+                            idx = optionId,
+                            value = option.Value,
+                        }
+                    end,
+                    Load = function(optionId2, savedValue)
+                        if toggles[optionId2] then
+                            toggles[optionId2]:SetValue(savedValue.value)
+                        end
+                    end,
+                },
+                Slider = {
+                    Save = function(optionId3, option2)
+                        return {
+                            type = 'Slider',
+                            idx = optionId3,
+                            value = tostring(option2.Value),
+                        }
+                    end,
+                    Load = function(optionId4, savedValue2)
+                        if options[optionId4] then
+                            options[optionId4]:SetValue(savedValue2.value)
+                        end
+                    end,
+                },
+                Dropdown = {
+                    Save = function(optionId5, option3)
+                        return {
+                            type = 'Dropdown',
+                            idx = optionId5,
+                            value = option3.Value,
+                            mutli = option3.Multi,
+                        }
+                    end,
+                    Load = function(optionId6, savedValue3)
+                        if options[optionId6] then
+                            options[optionId6]:SetValue(savedValue3.value)
+                        end
+                    end,
+                },
+                ColorPicker = {
+                    Save = function(optionId7, option4)
+                        return {
+                            type = 'ColorPicker',
+                            idx = optionId7,
+                            value = option4.Value:ToHex(),
+                            transparency = option4.Transparency,
+                        }
+                    end,
+                    Load = function(optionId8, savedValue4)
+                        if options[optionId8] then
+                            options[optionId8]:SetValueRGB(Color3.fromHex(savedValue4.value), savedValue4.transparency)
+                        end
+                    end,
+                },
+                KeyPicker = {
+                    Save = function(optionId9, option5)
+                        return {
+                            type = 'KeyPicker',
+                            idx = optionId9,
+                            mode = option5.Mode,
+                            key = option5.Value,
+                        }
+                    end,
+                    Load = function(optionId10, savedValue5)
+                        if options[optionId10] then
+                            options[optionId10]:SetValue({
+                                savedValue5.key,
+                                savedValue5.mode,
+                            })
+                        end
+                    end,
+                },
+                Input = {
+                    Save = function(optionId11, option6)
+                        return {
+                            type = 'Input',
+                            idx = optionId11,
+                            text = option6.Value,
+                        }
+                    end,
+                    Load = function(optionId12, savedValue6)
+                        if options[optionId12] and type(savedValue6.text) == 'string' then
+                            options[optionId12]:SetValue(savedValue6.text)
+                        end
+                    end,
+                },
+            }
+
+            function configManager:BuildFolderTree()
+                local folders = {
+                    self.Folder,
+                    self.Folder .. '/settings',
+                    self.Folder .. '/themes',
+                }
+
+                for index = 1, #folders do
+                    __step(41)
+
+                    local folderPath = folders[index]
+
+                    if not isfolderFn(folderPath) then
+                        makefolder(folderPath)
+                    end
+                end
+            end
+            function configManager:CheckFolderTree()
+                if not isfolderFn(self.Folder) then
+                    configManager:BuildFolderTree()
+                    task.wait()
+                end
+            end
+            function configManager:SetIgnoreIndexes(indexes)
+                for key, value in next, indexes do
+                    __step(42)
+
+                    self.Ignore[value] = true
+                end
+            end
+            function configManager:SetFolder(folder)
+                self.Folder = folder
+
+                self:BuildFolderTree()
+            end
+            function configManager:Save(configName, value049)
+                if not configName then
+                    return false, 'no config file is selected'
+                end
+
+                configManager:CheckFolderTree()
+
+                local configPath = self.Folder .. '/settings/' .. configName .. '.json'
+                local savedConfig = {objects = {}}
+
+                for key2, value2 in next, toggles do
+                    __step(43)
+
+                    if self.Ignore[key2] then
+                        continue
+                    end
+
+                    table.insert(savedConfig.objects, self.Parser[value2.Type].Save(key2, value2))
+                end
+                for key3, value3 in next, options do
+                    __step(44)
+
+                    if not self.Parser[value3.Type] then
+                        continue
+                    end
+                    if self.Ignore[key3] then
+                        continue
+                    end
+
+                    table.insert(savedConfig.objects, self.Parser[value3.Type].Save(key3, value3))
+                end
+
+                local success, resultOrError = pcall(httpService.JSONEncode, httpService, savedConfig)
+
+                if not success then
+                    return false, 'failed to encode data'
+                end
+                if not value049 then
+                    writefile(configPath, resultOrError)
+                end
+
+                return true, resultOrError
+            end
+            function configManager:Load(configOrName)
+                if not configOrName then
+                    return false, 'no config file is selected'
+                end
+                if type(configOrName) == 'table' then
+                    for key4, value4 in next, configOrName.objects do
+                        __step(45)
+
+                        if self.Parser[value4.type] then
+                            task.spawn(function()
+                                self.Parser[value4.type].Load(value4.idx, value4)
+                            end)
+                        end
+                    end
+
+                    return true
+                end
+
+                configManager:CheckFolderTree()
+
+                local configPath2 = self.Folder .. '/settings/' .. configOrName .. '.json'
+
+                if not isfileFn(configPath2) then
+                    return false, 'invalid file'
+                end
+
+                local success2, resultOrError2 = pcall(httpService.JSONDecode, httpService, readfile(configPath2))
+
+                if not success2 then
+                    return false, 'decode error'
+                end
+
+                for key5, value5 in next, resultOrError2.objects do
+                    __step(46)
+
+                    if self.Parser[value5.type] then
+                        task.spawn(function()
+                            self.Parser[value5.type].Load(value5.idx, value5)
+                        end)
+                    end
+                end
+
+                return true
+            end
+            function configManager:Delete(configName2)
+                if not configName2 then
+                    return false, 'no config file is selected'
+                end
+
+                local configPath3 = self.Folder .. '/settings/' .. configName2 .. '.json'
+
+                if not isfileFn(configPath3) then
+                    return false, 'invalid file'
+                end
+
+                local success3, resultOrError3 = pcall(delfile, configPath3)
+
+                if not success3 then
+                    return false, 'delete file error'
+                end
+
+                return true
+            end
+            function configManager:IgnoreThemeSettings()
+                self:SetIgnoreIndexes({
+                    'ThemeManager_ThemeList',
+                    'ThemeManager_CustomThemeList',
+                    'ThemeManager_CustomThemeName',
+                    'VideoLink',
+                    'Brightness',
+                    'Contrast',
+                    'Saturation',
+                    'Brightness',
+                    'BlurSize',
+                    'FontColor',
+                    'RiskColor',
+                    'MainColor',
+                    'AccentColor',
+                    'BackgroundColor',
+                    capture03[3][capture03[2] ],
+                    'SwordColor',
+                    'ItemType',
+                    'BackTransparency',
+                    'BackColor',
+                    'SwordTransparency',
+                    'SwordReflectance',
+                    'SwordMaterial',
+                    'SwordSpeed',
+                })
+            end
+            function configManager:RefreshConfigList()
+                local value074 = listfilesFn(self.Folder .. '/settings')
+                local value075 = {}
+
+                for index2 = 1, #value074 do
+                    __step(47)
+
+                    local value077 = value074[index2]
+
+                    if value077:sub(-5) == '.json' then
+                        local matchStart = value077:find('.json', 1, true)
+                        local value079 = matchStart
+                        local value080 = value077:sub(matchStart, matchStart)
+
+                        while value080 ~= '/' and value080 ~= '\\' and value080 ~= '' do
+                            __step(48)
+
+                            matchStart = matchStart - 1
+                            value080 = value077:sub(matchStart, matchStart)
+                        end
+
+                        if value080 == '/' or value080 == '\\' then
+                            table.insert(value075, value077:sub(matchStart + 1, value079 - 1))
+                        end
+                    end
+                end
+
+                return value075
+            end
+            function configManager:SetLibrary(library)
+                self.Library = library
+            end
+            function configManager:LoadAutoloadConfig()
+                configManager:CheckFolderTree()
+
+                if isfileFn(self.Folder .. '/settings/autoload.txt') then
+                    local value084 = readfile(self.Folder .. '/settings/autoload.txt')
+                    local value085, value086 = self:Load(value084)
+
+                    if not value085 then
+                        return self.Library:Notify('Failed to load autoload config: ' .. value086)
+                    end
+                    if not SILENT then
+                        self.Library:Notify(string.format('Auto loaded config %q', value084))
+                    end
+                end
+            end
+        end
+
+        getgenv().SaveManager = configManager
+    end
+end
+function Native.themes(captures)
+    local themeManager = captures[1]
+    local capture02 = captures[2]
+    local capture00 = captures[0]
+
+    return function()
+        local value005 = cloneref or function(value006)
+            return value006
+        end
+        local httpService = value005(game:GetService('HttpService'))
+        local value008 = syn and syn.request or http and http.request or http_request or fluxus and fluxus.request or request
+        local value009 = getcustomasset or getsynasset
+
+        do
+            themeManager.Folder = ''
+            themeManager.Library = nil
+            themeManager.BuiltInThemes = {
+                Default = {
+                    1,
+                    httpService:JSONDecode('{\n\t\t\t\t"FontColor":"ffffff",\n\t\t\t\t"MainColor":"131313",\n\t\t\t\t"AccentColor":"a2cdff",\n\t\t\t\t"BackgroundColor":"151515",\n\t\t\t\t"OutlineColor":"212121",\n\t\t\t\t"RiskColor":"ff7425",\n\n\t\t\t\t"ItemType":"Void",\n\t\t\t\t"SwordColor":"ffffff",\n\t\t\t\t"SwordTransparency":"0",\n\t\t\t\t"SwordReflectance":"0",\n\t\t\t\t"SwordSpeed":"0.15",\n\t\t\t\t"SwordMaterial":"Neon",\n\n\t\t\t\t"Contrast":"0",\n\t\t\t\t"Saturation":"0",\n\t\t\t\t"Brightness":"0",\n\n\t\t\t\t"BackColor":"000000",\n\t\t\t\t"BlurSize":"15",\n\t\t\t\t"BackTransparency":"0.7"\n\t\t\t}'),
+                },
+                ['Tokyo Night'] = {
+                    1,
+                    httpService:JSONDecode('{\n\t\t\t\t"FontColor":"ffffff",\n\t\t\t\t"MainColor":"191925",\n\t\t\t\t"AccentColor":"6956cb",\n\t\t\t\t"BackgroundColor":"15151e",\n\t\t\t\t"OutlineColor":"272727",\n\t\t\t\t"RiskColor":"fb5f5f",\n\n\t\t\t\t"ItemType":"Void",\n\t\t\t\t"SwordColor":"ffffff",\n\t\t\t\t"SwordTransparency":"0",\n\t\t\t\t"SwordReflectance":"0",\n\t\t\t\t"SwordSpeed":"0.15",\n\t\t\t\t"SwordMaterial":"Neon",\n\n\t\t\t\t"Contrast":"0",\n\t\t\t\t"Saturation":"0",\n\t\t\t\t"Brightness":"0",\n\n\n\t\t\t\t"BackColor":"000000",\n\t\t\t\t"BlurSize":"15",\n\t\t\t\t"BackTransparency":"0.7"\n\t\t\t}'),
+                },
+                Nord = {
+                    1,
+                    httpService:JSONDecode('{\n\t\t\t\t"FontColor":"ffffff",\n\t\t\t\t"MainColor":"1c1e20",\n\t\t\t\t"AccentColor":"9effc8",\n\t\t\t\t"BackgroundColor":"1c1e20",\n\t\t\t\t"OutlineColor":"24282d",\n\t\t\t\t"RiskColor":"ff7a00",\n\n\t\t\t\t"ItemType":"Void",\n\t\t\t\t"SwordColor":"ffffff",\n\t\t\t\t"SwordTransparency":"0",\n\t\t\t\t"SwordReflectance":"0",\n\t\t\t\t"SwordSpeed":"0.15",\n\t\t\t\t"SwordMaterial":"Neon",\n\n\t\t\t\t"Contrast":"0",\n\t\t\t\t"Saturation":"0",\n\t\t\t\t"Brightness":"0",\n\n\n\t\t\t\t"BackColor":"000000",\n\t\t\t\t"BlurSize":"15",\n\t\t\t\t"BackTransparency":"0.7"\n\t\t\t}'),
+                },
+                Skeet = {
+                    1,
+                    httpService:JSONDecode('{\n\t\t\t\t"FontColor":"ffffff",\n\t\t\t\t"MainColor":"131313",\n\t\t\t\t"AccentColor":"81ff54",\n\t\t\t\t"BackgroundColor":"151515",\n\t\t\t\t"OutlineColor":"2a2a2a",\n\t\t\t\t"RiskColor":"e50000",\n\n\t\t\t\t"ItemType":"Void",\n\t\t\t\t"SwordColor":"ffffff",\n\t\t\t\t"SwordTransparency":"0",\n\t\t\t\t"SwordReflectance":"0",\n\t\t\t\t"SwordSpeed":"0.15",\n\t\t\t\t"SwordMaterial":"Neon",\n\n\t\t\t\t"Contrast":"0",\n\t\t\t\t"Saturation":"0",\n\t\t\t\t"Brightness":"0",\n\n\n\t\t\t\t"BackColor":"000000",\n\t\t\t\t"BlurSize":"15",\n\t\t\t\t"BackTransparency":"0.7"\n\t\t\t}'),
+                },
+                Fatality = {
+                    1,
+                    httpService:JSONDecode('{\n\t\t\t\t"FontColor":"ffffff",\n\t\t\t\t"MainColor":"181537",\n\t\t\t\t"AccentColor":"ca0756",\n\t\t\t\t"BackgroundColor":"201c46",\n\t\t\t\t"OutlineColor":"39335a",\n\t\t\t\t"RiskColor":"e50000",\n\n\t\t\t\t"ItemType":"Void",\n\t\t\t\t"SwordColor":"ffffff",\n\t\t\t\t"SwordTransparency":"0",\n\t\t\t\t"SwordReflectance":"0",\n\t\t\t\t"SwordSpeed":"0.15",\n\t\t\t\t"SwordMaterial":"Neon",\n\n\t\t\t\t"Contrast":"0",\n\t\t\t\t"Saturation":"0",\n\t\t\t\t"Brightness":"0",\n\n\n\t\t\t\t"BackColor":"000000",\n\t\t\t\t"BlurSize":"15",\n\t\t\t\t"BackTransparency":"0.7"\n\t\t\t}'),
+                },
+                Neverlose = {
+                    1,
+                    httpService:JSONDecode('{\n\t\t\t\t"FontColor":"ffffff",\n\t\t\t\t"MainColor":"0c1014",\n\t\t\t\t"AccentColor":"01a3f1",\n\t\t\t\t"BackgroundColor":"0c0f14",\n\t\t\t\t"OutlineColor":"191919",\n\t\t\t\t"RiskColor":"e50000",\n\n\t\t\t\t"ItemType":"Void",\n\t\t\t\t"SwordColor":"ffffff",\n\t\t\t\t"SwordTransparency":"0",\n\t\t\t\t"SwordReflectance":"0",\n\t\t\t\t"SwordSpeed":"0.15",\n\t\t\t\t"SwordMaterial":"Neon",\n\n\t\t\t\t"Contrast":"0",\n\t\t\t\t"Saturation":"0",\n\t\t\t\t"Brightness":"0",\n\n\n\t\t\t\t"BackColor":"000000",\n\t\t\t\t"BlurSize":"15",\n\t\t\t\t"BackTransparency":"0.7"\n\t\t\t}'),
+                },
+                Onetap = {
+                    1,
+                    httpService:JSONDecode('{\n\t\t\t\t"FontColor":"ffffff",\n\t\t\t\t"MainColor":"1e1d22",\n\t\t\t\t"AccentColor":"faa614",\n\t\t\t\t"BackgroundColor":"18181c",\n\t\t\t\t"OutlineColor":"313033",\n\t\t\t\t"RiskColor":"e50000",\n\n\t\t\t\t"ItemType":"Void",\n\t\t\t\t"SwordColor":"ffffff",\n\t\t\t\t"SwordTransparency":"0",\n\t\t\t\t"SwordReflectance":"0",\n\t\t\t\t"SwordSpeed":"0.15",\n\t\t\t\t"SwordMaterial":"Neon",\n\n\t\t\t\t"Contrast":"0",\n\t\t\t\t"Saturation":"0",\n\t\t\t\t"Brightness":"0",\n\n\n\t\t\t\t"BackColor":"000000",\n\t\t\t\t"BlurSize":"15",\n\t\t\t\t"BackTransparency":"0.7"\n\t\t\t}'),
+                },
+                Imgui = {
+                    1,
+                    httpService:JSONDecode('{\n\t\t\t\t"FontColor":"ffffff",\n\t\t\t\t"MainColor":"151617",\n\t\t\t\t"AccentColor":"406ba8",\n\t\t\t\t"BackgroundColor":"151617",\n\t\t\t\t"OutlineColor":"242424",\n\t\t\t\t"RiskColor":"e50000",\n\n\t\t\t\t"ItemType":"Void",\n\t\t\t\t"SwordColor":"ffffff",\n\t\t\t\t"SwordTransparency":"0",\n\t\t\t\t"SwordReflectance":"0",\n\t\t\t\t"SwordSpeed":"0.15",\n\t\t\t\t"SwordMaterial":"Neon",\n\n\t\t\t\t"Contrast":"0",\n\t\t\t\t"Saturation":"0",\n\t\t\t\t"Brightness":"0",\n\n\n\t\t\t\t"BackColor":"000000",\n\t\t\t\t"BlurSize":"15",\n\t\t\t\t"BackTransparency":"0.7"\n\t\t\t}'),
+                },
+                Iniuria = {
+                    1,
+                    httpService:JSONDecode('{\n\t\t\t\t"FontColor":"ffffff",\n\t\t\t\t"MainColor":"1e1d1e",\n\t\t\t\t"AccentColor":"c41275",\n\t\t\t\t"BackgroundColor":"1e1d1e",\n\t\t\t\t"OutlineColor":"33252b",\n\t\t\t\t"RiskColor":"e50000",\n\n\t\t\t\t"ItemType":"Void",\n\t\t\t\t"SwordColor":"ffffff",\n\t\t\t\t"SwordTransparency":"0",\n\t\t\t\t"SwordReflectance":"0",\n\t\t\t\t"SwordSpeed":"0.15",\n\t\t\t\t"SwordMaterial":"Neon",\n\n\t\t\t\t"Contrast":"0",\n\t\t\t\t"Saturation":"0",\n\t\t\t\t"Brightness":"0",\n\n\n\t\t\t\t"BackColor":"000000",\n\t\t\t\t"BlurSize":"15",\n\t\t\t\t"BackTransparency":"0.7"\n\t\t\t}'),
+                },
+                Primordial = {
+                    1,
+                    httpService:JSONDecode('{\n\t\t\t\t"FontColor":"ffffff",\n\t\t\t\t"MainColor":"181818",\n\t\t\t\t"AccentColor":"d7a6b0",\n\t\t\t\t"BackgroundColor":"1f1f1f",\n\t\t\t\t"OutlineColor":"2a2a2a",\n\t\t\t\t"RiskColor":"e50000",\n\n\t\t\t\t"ItemType":"Void",\n\t\t\t\t"SwordColor":"ffffff",\n\t\t\t\t"SwordTransparency":"0",\n\t\t\t\t"SwordReflectance":"0",\n\t\t\t\t"SwordSpeed":"0.15",\n\t\t\t\t"SwordMaterial":"Neon",\n\n\t\t\t\t"Contrast":"0",\n\t\t\t\t"Saturation":"0",\n\t\t\t\t"Brightness":"0",\n\n\n\t\t\t\t"BackColor":"000000",\n\t\t\t\t"BlurSize":"15",\n\t\t\t\t"BackTransparency":"0.7"\n\t\t\t}'),
+                },
+                Monolith = {
+                    1,
+                    httpService:JSONDecode('{\n\t\t\t\t"FontColor":"ffffff",\n\t\t\t\t"MainColor":"141115",\n\t\t\t\t"AccentColor":"c707bd",\n\t\t\t\t"BackgroundColor":"171417",\n\t\t\t\t"OutlineColor":"272427",\n\t\t\t\t"RiskColor":"e50000",\n\n\t\t\t\t"ItemType":"Void",\n\t\t\t\t"SwordColor":"ffffff",\n\t\t\t\t"SwordTransparency":"0",\n\t\t\t\t"SwordReflectance":"0",\n\t\t\t\t"SwordSpeed":"0.15",\n\t\t\t\t"SwordMaterial":"Neon",\n\n\t\t\t\t"Contrast":"0",\n\t\t\t\t"Saturation":"0",\n\t\t\t\t"Brightness":"0",\n\n\n\t\t\t\t"BackColor":"000000",\n\t\t\t\t"BlurSize":"15",\n\t\t\t\t"BackTransparency":"0.7"\n\t\t\t}'),
+                },
+                V3rmillion = {
+                    1,
+                    httpService:JSONDecode('{\n\t\t\t\t"FontColor":"ffffff",\n\t\t\t\t"MainColor":"202020",\n\t\t\t\t"AccentColor":"cd1818",\n\t\t\t\t"BackgroundColor":"202020",\n\t\t\t\t"OutlineColor":"2a2a2a",\n\t\t\t\t"RiskColor":"e50000",\n\n\t\t\t\t"ItemType":"Void",\n\t\t\t\t"SwordColor":"ffffff",\n\t\t\t\t"SwordTransparency":"0",\n\t\t\t\t"SwordReflectance":"0",\n\t\t\t\t"SwordSpeed":"0.15",\n\t\t\t\t"SwordMaterial":"Neon",\n\n\t\t\t\t"Contrast":"0",\n\t\t\t\t"Saturation":"0",\n\t\t\t\t"Brightness":"0",\n\n\n\t\t\t\t"BackColor":"000000",\n\t\t\t\t"BlurSize":"15",\n\t\t\t\t"BackTransparency":"0.7"\n\t\t\t}'),
+                },
+                Dark = {
+                    1,
+                    httpService:JSONDecode('{\n\t\t\t\t"FontColor":"ffffff",\n\t\t\t\t"MainColor":"0a0a0a",\n\t\t\t\t"AccentColor":"5945ff",\n\t\t\t\t"BackgroundColor":"0a0a0a",\n\t\t\t\t"OutlineColor":"171717",\n\t\t\t\t"RiskColor":"e50000",\n\n\t\t\t\t"ItemType":"Void",\n\t\t\t\t"SwordColor":"ffffff",\n\t\t\t\t"SwordTransparency":"0",\n\t\t\t\t"SwordReflectance":"0",\n\t\t\t\t"SwordSpeed":"0.15",\n\t\t\t\t"SwordMaterial":"Neon",\n\n\t\t\t\t"Contrast":"0",\n\t\t\t\t"Saturation":"0",\n\t\t\t\t"Brightness":"0",\n\n\n\t\t\t\t"BackColor":"000000",\n\t\t\t\t"BlurSize":"15",\n\t\t\t\t"BackTransparency":"0.7"\n\t\t\t}'),
+                },
+            }
+
+            function themeManager:ApplyTheme(themeName)
+                if not themeName then
+                    return
+                end
+
+                local value012 = self:GetCustomTheme(themeName)
+                local value013 = value012 or self.BuiltInThemes[themeName]
+
+                if not value013 then
+                    return
+                end
+                if self.Library.InnerVideoBackground ~= nil then
+                    self.Library.InnerVideoBackground.Visible = false
+                end
+
+                local value014 = value013[2]
+
+                for key, value in next, value012 or value014 do
+                    __step(2052)
+
+                    if key:find('Color') then
+                        self.Library[key] = Color3.fromHex(value)
+
+                        if capture00[key] then
+                            capture00[key]:SetValueRGB(Color3.fromHex(value))
+                        end
+                    else
+                        self.Library[key] = value
+
+                        if capture00[key] then
+                            capture00[key]:SetValue(value)
+                        end
+                    end
+                end
+
+                self:ThemeUpdate()
+            end
+            function themeManager:ThemeUpdate()
+                if self.Library.InnerVideoBackground ~= nil then
+                    self.Library.InnerVideoBackground.Visible = false
+                end
+
+                local value018 = {
+                    'Contrast',
+                    'Saturation',
+                    'Brightness',
+                    'BlurSize',
+                    'FontColor',
+                    'RiskColor',
+                    'MainColor',
+                    'AccentColor',
+                    'BackgroundColor',
+                    capture02[3][capture02[2] ],
+                    'SwordColor',
+                    'ItemType',
+                    'BackTransparency',
+                    'BackColor',
+                    'SwordTransparency',
+                    'SwordReflectance',
+                    'SwordMaterial',
+                    'SwordSpeed',
+                }
+
+                for key2, value2 in next, value018 do
+                    __step(2053)
+
+                    if capture00 and capture00[value2] then
+                        self.Library[value2] = capture00[value2].Value
+                    end
+                end
+
+                self.Library.AccentColorDark = self.Library:GetDarkerColor(self.Library.AccentColor)
+
+                self.Library:UpdateColorsUsingRegistry()
+            end
+            function themeManager:LoadDefault()
+                local value022 = 'Default'
+                local value023 = isfile(self.Folder .. '/themes/default.txt') and readfile(self.Folder .. '/themes/default.txt')
+                local value024 = true
+
+                if value023 then
+                    if self.BuiltInThemes[value023] then
+                        value022 = value023
+                    elseif self:GetCustomTheme(value023) then
+                        value022 = value023
+                        value024 = false
+                    end
+                elseif self.BuiltInThemes[self.DefaultTheme] then
+                    value022 = self.DefaultTheme
+                end
+                if value024 then
+                    capture00.ThemeManager_ThemeList:SetValue(value022)
+                else
+                    self:ApplyTheme(value022)
+                end
+            end
+            function themeManager:SaveDefault(themeName2)
+                writefile(self.Folder .. '/themes/default.txt', themeName2)
+            end
+            function themeManager:Delete(fileName)
+                if not fileName then
+                    return false, 'no config file is selected'
+                end
+
+                local value029 = self.Folder .. '/themes/' .. fileName
+
+                if not isfile(value029) then
+                    return false, 'invalid file'
+                end
+
+                local success, resultOrError = pcall(delfile, value029)
+
+                if not success then
+                    return false, 'delete file error'
+                end
+
+                return true
+            end
+            function themeManager:GetCustomTheme(fileName2)
+                if not fileName2 then
+                    return
+                end
+
+                local value034 = self.Folder .. '/themes/' .. fileName2
+
+                if not isfile(value034) then
+                    return nil
+                end
+
+                local value035 = readfile(value034)
+                local success2, resultOrError2 = pcall(httpService.JSONDecode, httpService, value035)
+
+                if not success2 then
+                    return nil
+                end
+
+                return resultOrError2
+            end
+            function themeManager:SaveCustomTheme(fileName3)
+                if not fileName3 or fileName3:gsub(' ', '') == '' then
+                    return self.Library:Notify('Invalid file name for theme (empty)', 3)
+                end
+
+                local value040 = {}
+                local value041 = {
+                    'Contrast',
+                    'Saturation',
+                    'Brightness',
+                    'BlurSize',
+                    'FontColor',
+                    'RiskColor',
+                    'MainColor',
+                    'AccentColor',
+                    'BackgroundColor',
+                    capture02[3][capture02[2] ],
+                    'ItemType',
+                    'SwordColor',
+                    'BackTransparency',
+                    'BackColor',
+                    'SwordTransparency',
+                    'SwordReflectance',
+                    'SwordMaterial',
+                    'SwordSpeed',
+                }
+
+                for key3, value3 in next, value041 do
+                    __step(2054)
+
+                    if capture00[value3] then
+                        if not value3:find('Color') then
+                            value040[value3] = capture00[value3].Value
+                        else
+                            value040[value3] = capture00[value3].Value:ToHex()
+                        end
+                    end
+                end
+
+                writefile(self.Folder .. '/themes/' .. fileName3, httpService:JSONEncode(value040))
+            end
+            function themeManager:ReloadCustomThemes()
+                local value045 = listfiles(self.Folder .. '/themes')
+                local value046 = {}
+
+                for index = 1, #value045 do
+                    __step(2055)
+
+                    local value048 = value045[index]
+
+                    if value048:sub(-5) == '.json' then
+                        local matchStart = value048:find('.json', 1, true)
+                        local value050 = value048:sub(matchStart, matchStart)
+
+                        while value050 ~= '/' and value050 ~= '\\' and value050 ~= '' do
+                            __step(2056)
+
+                            matchStart = matchStart - 1
+                            value050 = value048:sub(matchStart, matchStart)
+                        end
+
+                        if value050 == '/' or value050 == '\\' then
+                            table.insert(value046, value048:sub(matchStart + 1))
+                        end
+                    end
+                end
+
+                return value046
+            end
+            function themeManager:SetLibrary(library)
+                self.Library = library
+            end
+            function themeManager:BuildFolderTree()
+                local value054 = {}
+                local value055 = self.Folder:split('/')
+
+                for index2 = 1, #value055 do
+                    __step(2057)
+
+                    value054[#value054 + 1] = table.concat(value055, '/', 1, index2)
+                end
+
+                table.insert(value054, self.Folder .. '/themes')
+
+                for index3 = 1, #value054 do
+                    __step(2058)
+
+                    local value058 = value054[index3]
+
+                    if not isfolder(value058) then
+                        makefolder(value058)
+                    end
+                end
+            end
+            function themeManager:SetFolder(folder)
+                self.Folder = folder
+
+                self:BuildFolderTree()
+            end
+            function themeManager:CreateGroupBox(tab)
+                assert(self.Library, 'Must set ThemeManager.Library first!')
+
+                return tab:AddLeftTabbox()
+            end
+            function themeManager:ApplyToTab(tab2)
+                assert(self.Library, 'Must set ThemeManager.Library first!')
+
+                local value065 = self:CreateGroupBox(tab2)
+
+                self:CreateThemeManager(value065)
+            end
+            function themeManager:ApplyToGroupbox(groupbox)
+                assert(self.Library, 'Must set ThemeManager.Library first!')
+                self:CreateThemeManager(groupbox)
+            end
+        end
+
+        getgenv().ThemeManager = themeManager
+    end
+end
+function Native.keyPicker(captures)
+    local capture07 = captures[7]
+    local capture09 = captures[9]
+    local capture03 = captures[3]
+    local capture02 = captures[2]
+    local capture08 = captures[8]
+    local capture00 = captures[0]
+    local capture06 = captures[6]
+    local capture05 = captures[5]
+    local capture04 = captures[4]
+    local capture10 = captures[10]
+    local capture01 = captures[1]
+
+    return function()
+        local value013 = capture03.Modes or {
+            'Always',
+            'Toggle',
+            'Hold',
+        }
+        local value014 = capture04:AddContextMenu(capture02)
+        local value015 = {}
+
+        for key, value in value013 do
+            __step(49)
+
+            local value018
+
+            value018 = value014:AddOption(value, function()
+                capture00.Mode = value
+                value018.TextColor3 = capture04.AccentColor
+
+                for key2, value2 in value015 do
+                    __step(50)
+
+                    if value2 ~= value018 then
+                        value2.TextColor3 = key2 == capture00.Mode and capture04.AccentColor or capture04.FontColor
+                    end
+                end
+
+                capture04:AttemptSave()
+            end)
+
+            value018:GetPropertyChangedSignal('TextColor3'):Connect(function()
+                if value == capture00.Mode then
+                    value018.TextColor3 = capture04.AccentColor
+                else
+                    value018.TextColor3 = capture04.FontColor
+                end
+            end)
+
+            value015[value] = value018
+        end
+
+        if capture04.FlagCopying then
+            value014:AddOption('Copy Flag', function()
+                pcall(setclipboard, capture00.Idx)
+                task.wait()
+                capture04:Notify('Copied flag to clipboard!', 2)
+                value014:Hide()
+            end)
+        end
+
+        for key3, value3 in value015 do
+            __step(51)
+
+            value3.TextColor3 = key3 == capture00.Mode and capture04.AccentColor or capture04.FontColor
+        end
+
+        local value023 = function(value024)
+            local mode = capture00.Mode
+
+            mode = mode ~= 'Always' and capture00.Override and 'Override' or mode
+            capture05.Text = string.format('[%s] %s (%s)', capture00.Value, capture03.Text, mode)
+            capture05.Visible = true
+            capture05.TextColor3 = value024 and capture04.AccentColor or capture04.FontColor
+            capture04.RegistryMap[capture05].Properties.TextColor3 = value024 and 'AccentColor' or 'FontColor'
+        end
+
+        function capture00:Update()
+            if not capture00.NoUI then
+                local keypickerListMode = capture04.KeypickerListMode
+                local value028 = capture00:GetState()
+
+                if keypickerListMode == 'Active' and capture00.Parent.Type == 'Toggle' and (not value028 or not capture00.Parent.Value) then
+                    capture05.Visible = false
+                elseif keypickerListMode == 'Toggled' and capture00.Parent.Type == 'Toggle' and not capture00.Parent.Value then
+                    capture05.Visible = false
+                else
+                    value023(value028)
+                end
+            else
+                capture05.Visible = false
+            end
+
+            local value029 = 0
+            local value030 = 0
+
+            for key4, value4 in next, capture04.KeybindContainer:GetChildren()do
+                __step(52)
+
+                if value4:IsA('TextLabel') and value4.Visible then
+                    value029 = value029 + 18
+
+                    if value4.TextBounds.X > value030 then
+                        value030 = value4.TextBounds.X
+                    end
+                end
+            end
+
+            capture04.KeybindFrame.Size = UDim2.new(0, math.max(value030 + 10, 210), 0, value029 + 23)
+            capture04.KeybindFrame.Visible = capture04.KeypickerListVisible and value029 ~= 0
+        end
+        function capture00:OverrideState(overrideState)
+            if self.Override == overrideState then
+                return
+            end
+
+            self.Override = overrideState
+            capture00.Toggled = false
+
+            capture00:Update()
+        end
+
+        local isMouseButtonPressed, isKeyDown = capture01.IsMouseButtonPressed, capture01.IsKeyDown
+        local mouseButton1, mouseButton2 = Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseButton2
+        local keyCode = Enum.KeyCode
+
+        function capture00:GetState()
+            local mode2 = capture00.Mode
+
+            if mode2 == 'Always' then
+                return true
+            end
+
+            local value7 = capture00.Value
+
+            if value7 == '...' then
+                return true
+            end
+
+            local value043 = nil
+
+            if mode2 == 'Hold' then
+                if value7 == 'MB1' or value7 == 'MB2' then
+                    value043 = value7 == 'MB1' and isMouseButtonPressed(capture01, mouseButton1) or value7 == 'MB2' and isMouseButtonPressed(capture01, mouseButton2)
+                else
+                    value043 = isKeyDown(capture01, keyCode[value7])
+                end
+            else
+                value043 = capture00.Toggled
+            end
+            if value043 and self.Override then
+                capture00:OverrideState(false)
+            end
+
+            return value043 or self.Override
+        end
+        function capture00:SetValue(newValue)
+            local value046, value047 = newValue[1], newValue[2]
+
+            capture07.Text = value046
+            capture00.Value, capture00.Mode = value046, value047
+
+            for key5, value5 in value015 do
+                __step(53)
+
+                value5.TextColor3 = key5 == capture00.Mode and capture04.AccentColor or capture04.FontColor
+            end
+
+            capture00:Update()
+        end
+        function capture00:OnClick(callback)
+            capture00.Clicked = callback
+        end
+        function capture00:OnChanged(callback2)
+            capture00.Changed = callback2
+
+            callback2(capture00.Value)
+        end
+
+        if capture08.Addons then
+            table.insert(capture08.Addons, capture00)
+        end
+
+        function capture00:DoClick()
+            if capture00.Override then
+                capture00.Override = false
+                capture00.Toggled = false
+            end
+            if capture08.Type == 'Toggle' and capture00.SyncToggleState then
+                capture08:SetValue(not capture08.Value)
+            end
+
+            capture04:SafeCallback(capture00.Callback, capture00.Toggled)
+            capture04:SafeCallback(capture00.Clicked, capture00.Toggled)
+        end
+        function capture00:SetupConnection(connection)
+            table.insert(self.Connections, connection)
+            capture04:GiveSignal(connection)
+        end
+        function capture00:Remove()
+            capture10[capture06] = nil
+
+            for key6, value6 in capture00.Connections do
+                __step(54)
+                value6:Disconnect()
+            end
+
+            table.clear(capture00)
+            capture02:Destroy()
+            capture05:Destroy()
+        end
+        function capture00:SetModePickerVisibility(visible)
+            capture09.Visible = visible
+        end
+        function capture00:GetModePickerVisibility()
+            return capture09.Visible
+        end
+
+        local value063 = false
+        local value064 = {
+            [Enum.KeyCode.Escape] = true,
+            [Enum.KeyCode.Backspace] = true,
+        }
+
+        capture02.InputBegan:Connect(function(input)
+            if not value063 and input.UserInputType == Enum.UserInputType.MouseButton1 and not capture04:MouseIsOverOpenedFrame() then
+                value063 = true
+                capture07.Text = ''
+
+                local value066
+                local value067 = ''
+
+                task.spawn(function()
+                    while not value066 do
+                        __step(55)
+
+                        if value067 == '...' then
+                            value067 = ''
+                        end
+
+                        value067 = value067 .. '.'
+                        capture07.Text = value067
+
+                        wait(0.4)
+                    end
+                end)
+                wait(0.2)
+
+                local value068
+
+                value068 = capture01.InputBegan:Connect(function(input2)
+                    local value070
+
+                    if input2.UserInputType == Enum.UserInputType.Keyboard then
+                        value070 = value064[input2.KeyCode] and '...' or input2.KeyCode.Name
+                    elseif input2.UserInputType == Enum.UserInputType.MouseButton1 then
+                        value070 = 'MB1'
+                    elseif input2.UserInputType == Enum.UserInputType.MouseButton2 then
+                        value070 = 'MB2'
+                    end
+
+                    value066 = true
+                    value063 = false
+                    capture07.Text = value070
+                    capture00.Value = value070
+
+                    capture04:SafeCallback(capture00.ChangedCallback, input2.KeyCode or input2.UserInputType)
+                    capture04:SafeCallback(capture00.Changed, input2.KeyCode or input2.UserInputType)
+                    capture04:AttemptSave()
+                    value068:Disconnect()
+                end)
+            end
+        end)
+        capture00:SetupConnection(capture01.InputBegan:Connect(function(input3, gameProcessed)
+            if not value063 and not gameProcessed then
+                if capture00.Mode == 'Toggle' then
+                    local value8 = capture00.Value
+
+                    if value8 == 'MB1' or value8 == 'MB2' then
+                        if value8 == 'MB1' and input3.UserInputType == Enum.UserInputType.MouseButton1 or value8 == 'MB2' and input3.UserInputType == Enum.UserInputType.MouseButton2 then
+                            capture00.Toggled = not capture00.Toggled
+
+                            capture00:DoClick()
+                        end
+                    elseif input3.UserInputType == Enum.UserInputType.Keyboard then
+                        if input3.KeyCode.Name == value8 then
+                            capture00.Toggled = not capture00.Toggled
+
+                            capture00:DoClick()
+                        end
+                    end
+                end
+
+                capture00:Update()
+            end
+        end))
+        capture00:SetupConnection(capture01.InputEnded:Connect(function(input4)
+            if not value063 then
+                capture00:Update()
+            end
+        end))
+        capture00:Update()
+
+        capture10[capture06] = capture00
+    end
+end
+function Native.toggle(captures)
+    local capture10 = captures[10]
+    local capture01 = captures[1]
+    local capture06 = captures[6]
+    local capture12 = captures[12]
+    local capture11 = captures[11]
+    local capture13 = captures[13]
+    local capture09 = captures[9]
+    local capture07 = captures[7]
+    local capture05 = captures[5]
+    local capture02 = captures[2]
+    local capture03 = captures[3]
+    local capture04 = captures[4]
+    local capture14 = captures[14]
+    local capture08 = captures[8]
+    local capture00 = captures[0]
+
+    return function()
+        function capture00:Display()
+            capture02.BackgroundColor3 = capture00.Value and capture03.AccentColor or capture03.MainColor
+            capture02.BorderColor3 = capture00.Value and capture03.AccentColorDark or capture03.OutlineColor
+            capture03.RegistryMap[capture02].Properties.BackgroundColor3 = capture00.Value and 'AccentColor' or 'MainColor'
+            capture03.RegistryMap[capture02].Properties.BorderColor3 = capture00.Value and 'AccentColorDark' or capture13[3][capture13[2] ]
+        end
+
+        capture00.UpdateColors = capture00.Display
+
+        function capture00:OnChanged(callback)
+            table.insert(capture00.ChangedFuncs, callback)
+            callback(capture00.Value)
+        end
+        function capture00:SetValue(newValue)
+            if capture00.SettingValue then
+                return
+            end
+
+            capture00.SettingValue = true
+            newValue = not not newValue
+            capture00.Value = newValue
+
+            capture00:Display()
+
+            for key, value in next, capture00.Addons do
+                __step(26)
+
+                if value.Type == 'KeyPicker' and value.SyncToggleState then
+                    value.Toggled = newValue
+
+                    value:Update()
+                end
+            end
+
+            capture03:SafeCallback(capture00.Callback, newValue)
+
+            for key2, value2 in capture00.ChangedFuncs do
+                __step(27)
+                capture03:SafeCallback(value2, newValue)
+            end
+
+            capture03:UpdateDependencyBoxes()
+
+            capture00.SettingValue = false
+        end
+        function capture00:SetVisible(visible)
+            capture00.Visible = visible
+            capture04.Visible = capture00.Visible
+
+            if Blank then
+                Blank.Visible = capture00.Visible
+            end
+
+            capture01:Resize()
+        end
+        function capture00:Remove()
+            for key3, value3 in capture07 do
+                __step(28)
+                value3:Destroy()
+            end
+
+            capture09[capture05] = nil
+
+            capture06:Destroy()
+            table.clear(capture00)
+            capture01:Resize()
+        end
+
+        capture10.InputBegan:Connect(function(input)
+            if capture03.IsDragging then
+                return
+            end
+            if input.UserInputType == Enum.UserInputType.MouseButton1 and not capture03:MouseIsOverOpenedFrame() or input.UserInputType == Enum.UserInputType.Touch then
+                capture00:SetValue(not capture00.Value)
+                capture03:AttemptSave()
+            end
+        end)
+
+        if capture03.FlagCopying then
+            local value032 = capture03:AddContextMenu(capture04, capture10)
+
+            value032:AddOption('Copy Flag', function()
+                pcall(setclipboard, capture00.Idx)
+                task.wait()
+                capture03:Notify('Copied flag to clipboard!', 2)
+                value032:Hide()
+            end)
+        end
+        if capture00.Risky then
+            capture03:RemoveFromRegistry(capture08)
+
+            capture08.TextColor3 = capture03.RiskColor
+
+            capture03:AddToRegistry(capture08, {
+                TextColor3 = 'RiskColor',
+            })
+        end
+
+        capture00:Display()
+        table.insert(capture07, capture01:AddBlank(capture11.BlankSize or 7))
+        capture01:Resize()
+
+        capture00.ColorPickerCount = 0
+        capture00.ToggleRegion = capture10
+        capture00.TextLabel = capture08
+        capture00.Container = capture12
+
+        setmetatable(capture00, capture14)
+
+        capture09[capture05] = capture00
+
+        capture03:UpdateDependencyBoxes()
+    end
+end
+function Native.slider(captures)
+    local capture04 = captures[4]
+    local capture03 = captures[3]
+    local capture06 = captures[6]
+    local capture11 = captures[11]
+    local capture02 = captures[2]
+    local capture08 = captures[8]
+    local userInputService = captures[16]
+    local capture10 = captures[10]
+    local capture07 = captures[7]
+    local capture00 = captures[0]
+    local capture13 = captures[13]
+    local slider = captures[1]
+    local capture05 = captures[5]
+    local capture12 = captures[12]
+    local capture15 = captures[15]
+    local capture17 = captures[17]
+    local capture14 = captures[14]
+    local capture09 = captures[9]
+
+    return function()
+        function slider:UpdateColors()
+            capture03.BackgroundColor3 = capture07.AccentColor
+            capture03.BorderColor3 = capture07.AccentColorDark
+        end
+        function slider:Display()
+            local value022 = capture04.Suffix or ''
+
+            if capture04.Compact then
+                capture10.Text = capture04.Text .. ': ' .. slider.Value .. value022
+            elseif capture04.HideMax then
+                capture10.Text = string.format('%s', slider.Value .. value022)
+            else
+                capture10.Text = string.format('%s/%s', slider.Value .. value022, slider.Max .. value022)
+            end
+
+            local value023 = capture07:MapValue(slider.Value, slider.Min, slider.Max, 0, 1)
+
+            if capture05[3][capture05[2] ] then
+                capture05[3][capture05[2] ]:Cancel()
+            end
+
+            capture05[3][capture05[2] ] = capture09:Create(capture03, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Size = UDim2.new(value023, 0, 1, 0),
+            })
+
+            capture05[3][capture05[2] ]:Play()
+
+            capture08.Visible = not (value023 == 1 or value023 == 0)
+        end
+        function slider:OnChanged(callback)
+            table.insert(slider.ChangedFuncs, callback)
+            callback(slider.Value)
+        end
+
+        local function value026(value027)
+            if slider.Increment then
+                local value028 = math.round(value027 / slider.Increment) * slider.Increment
+
+                return tonumber(string.format('%.10f', value028))
+            elseif slider.Rounding == 0 then
+                return math.floor(value027)
+            end
+
+            return tonumber(string.format('%.' .. slider.Rounding .. 'f', value027))
+        end
+
+        function slider:GetValueFromXOffset(offsetX)
+            return value026(capture07:MapValue(offsetX, 0, slider.MaxSize, slider.Min, slider.Max)) + 0
+        end
+        function slider:Remove()
+            for key, value in capture15 do
+                __step(32)
+                value:Destroy()
+            end
+
+            capture14[capture13] = nil
+
+            slider.HolderFrame:Destroy()
+            table.clear(slider)
+            capture00:Resize()
+        end
+        function slider:SetValue(newValue)
+            local value036 = tonumber(newValue)
+
+            if not value036 then
+                return
+            end
+
+            value036 = math.clamp(value036, slider.Min, slider.Max)
+            slider.Value = value036
+
+            slider:Display()
+            capture07:SafeCallback(slider.Callback, slider.Value)
+
+            for key2, value2 in self.ChangedFuncs do
+                __step(33)
+                capture07:SafeCallback(value2, value036)
+            end
+        end
+        function slider:AddSlider(value040, value041)
+            return capture11.AddSlider(capture00, value040, value041, slider)
+        end
+
+        capture12.InputBegan:Connect(function(input)
+            if capture07.IsDragging then
+                return
+            end
+            if input.UserInputType == Enum.UserInputType.MouseButton1 and not capture07:MouseIsOverOpenedFrame() then
+                local value043 = capture06.X
+                local offset = capture03.Size.X.Offset
+                local value045 = value043 - (capture03.AbsolutePosition.X + offset)
+
+                while(userInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)) do
+                    __step(34)
+
+                    local value046 = capture06.X
+                    local value047 = math.clamp(offset + (value046 - value043) + value045, 0, slider.MaxSize)
+                    local value048 = slider:GetValueFromXOffset(value047)
+                    local value5 = slider.Value
+
+                    slider.Value = value048
+
+                    slider:Display()
+
+                    if value048 ~= value5 then
+                        capture07:SafeCallback(slider.Callback, slider.Value)
+
+                        for key3, value3 in slider.ChangedFuncs do
+                            __step(35)
+                            capture07:SafeCallback(value3, value048)
+                        end
+                    end
+
+                    capture17:Wait()
+                end
+
+                capture07:AttemptSave()
+            end
+            if input.UserInputType == Enum.UserInputType.Touch and not capture07:MouseIsOverOpenedFrame() then
+                local value052 = input.Position.X
+                local offset2 = capture03.Size.X.Offset
+                local value054 = value052 - (capture03.AbsolutePosition.X + offset2)
+                local value055 = true
+                local value056
+
+                value056 = input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        value055 = false
+                    end
+                end)
+
+                while value055 do
+                    __step(36)
+
+                    local value057 = input.Position.X
+                    local value058 = math.clamp(offset2 + (value057 - value052) + value054, 0, slider.MaxSize)
+                    local value059 = slider:GetValueFromXOffset(value058)
+                    local value6 = slider.Value
+
+                    slider.Value = value059
+
+                    slider:Display()
+
+                    if value059 ~= value6 then
+                        capture07:SafeCallback(slider.Callback, slider.Value)
+
+                        for key4, value4 in slider.ChangedFuncs do
+                            __step(37)
+                            capture07:SafeCallback(value4, value059)
+                        end
+                    end
+
+                    capture17:Wait()
+                end
+
+                if value056 then
+                    value056:Disconnect()
+                end
+
+                capture07:AttemptSave()
+            end
+        end)
+
+        if capture07.FlagCopying then
+            local value063 = capture07:AddContextMenu(capture12)
+
+            value063:AddOption('Copy Flag', function()
+                pcall(setclipboard, slider.Idx)
+                task.wait()
+                capture07:Notify('Copied flag to clipboard!', 2)
+                value063:Hide()
+            end)
+        end
+
+        slider:Display()
+
+        if not capture02 then
+            table.insert(capture15, capture00:AddBlank(capture04.BlankSize or 6))
+            capture00:Resize()
+        end
+
+        capture14[capture13] = slider
+    end
+end
+function Native.dropdown(captures)
+    local capture07 = captures[7]
+    local capture06 = captures[6]
+    local dropdown = captures[0]
+    local capture02 = captures[2]
+    local capture09 = captures[9]
+    local capture13 = captures[13]
+    local capture14 = captures[14]
+    local capture10 = captures[10]
+    local capture04 = captures[4]
+    local capture11 = captures[11]
+    local capture15 = captures[15]
+    local capture12 = captures[12]
+    local capture08 = captures[8]
+    local capture03 = captures[3]
+    local capture05 = captures[5]
+    local capture01 = captures[1]
+
+    return function()
+        local function value018()
+            capture02.Position = UDim2.fromOffset(capture08.AbsolutePosition.X, capture08.AbsolutePosition.Y + capture08.Size.Y.Offset + 1)
+        end
+        local function value019(value020)
+            local value021 = value020 or math.clamp(#dropdown.Values * 20, 0, capture07 * 20) + 1
+
+            capture02.Size = UDim2.fromOffset(capture08.AbsoluteSize.X + 0.5, value021)
+        end
+
+        value018()
+        value019()
+        capture08:GetPropertyChangedSignal('AbsolutePosition'):Connect(value018)
+
+        local value022 = capture01:Create(capture15[3][capture15[2] ], {
+            BackgroundColor3 = capture01.MainColor,
+            BorderColor3 = capture01.OutlineColor,
+            BorderMode = Enum.BorderMode.Inset,
+            BorderSizePixel = 0,
+            Size = UDim2.new(1, 0, 1, 0),
+            ZIndex = 21,
+            Parent = capture02,
+        })
+
+        capture01:AddToRegistry(value022, {
+            BackgroundColor3 = 'MainColor',
+            BorderColor3 = capture04[3][capture04[2] ],
+        })
+
+        local scrollingFrame = capture01:Create('ScrollingFrame', {
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            CanvasSize = UDim2.new(0, 0, 0, 0),
+            Size = UDim2.new(1, 0, 1, 0),
+            ZIndex = 21,
+            Parent = value022,
+            TopImage = 'rbxasset://textures/ui/Scroll/scroll-middle.png',
+            BottomImage = 'rbxasset://textures/ui/Scroll/scroll-middle.png',
+            ScrollingDirection = Enum.ScrollingDirection.Y,
+            ScrollBarThickness = capture01.IsMobile and 15 or 3,
+            ScrollBarImageColor3 = capture01.AccentColor,
+        })
+
+        capture01:AddToRegistry(scrollingFrame, {
+            ScrollBarImageColor3 = 'AccentColor',
+        })
+        capture01:Create('UIListLayout', {
+            Padding = UDim.new(0, 0),
+            FillDirection = Enum.FillDirection.Vertical,
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Parent = scrollingFrame,
+        })
+
+        function dropdown:Display()
+            local values = dropdown.Values
+            local value026 = ''
+
+            if capture03.Multi then
